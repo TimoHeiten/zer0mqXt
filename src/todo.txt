@@ -1,0 +1,21 @@
+
+Idee:
+	ZeroMq wegabstrahieren und type safe machen
+	eine Instanz zur Verwendung, die den gewünschten Socket bei Bedarf baut.
+
+core
+	var config = new SocketConfig();
+	config.Remote = true;// default is inProc
+	config.AddressPort = 5555;
+	var socket = new Socket(config);
+	
+	Socket.RequestAsync<T>();
+	Socket.PublishAsync<T>();
+	Socket.SubscribeTo<T>(eventCallback<T>);
+
+
+	later:
+		Router dealer socket
+		Discovery
+		
+		
