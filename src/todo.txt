@@ -3,6 +3,8 @@ Idee:
 	ZeroMq wegabstrahieren und type safe machen
 	eine Instanz zur Verwendung, die den gewünschten Socket bei Bedarf baut.
 
+    Logging für jeden Step
+
 core
 	var config = new SocketConfig();
 	config.Remote = true;// default is inProc
