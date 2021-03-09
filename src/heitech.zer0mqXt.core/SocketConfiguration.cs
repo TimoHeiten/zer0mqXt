@@ -10,9 +10,14 @@ namespace heitech.zer0mqXt.core
         ///</summary>
         public Serializer Serializer { get; set; }
         internal abstract string Address();
+        ///<summary>
+        /// Uses the BasicLogger implementation by default which only Logs to the console
+        ///</summary>
+        public ILogger Logger { get; set; }
 
         protected SocketConfiguration()
         {
+            Logger = new BasicLogger();
             Encoding = Encoding.UTF8;
             TimeOut = TimeSpan.FromSeconds(5);
             Serializer = Serializer.UseNewtonsoft(Encoding);

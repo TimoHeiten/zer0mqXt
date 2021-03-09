@@ -3,8 +3,6 @@ Idee:
 	abstract ZeroMq and have type safe protocol for inproc and tcp
 	use a single Instance and configure in a simple way, without the need to understand all intricate details of ZeroMQ
 
-    Logging für jeden Step
-
 core
 	later:
 		async / Router dealer socket
@@ -12,11 +10,9 @@ core
 
 Backlog:
 features
-    Logging (microsoft logging?)
     Pub / Sub / Publisher / Sub and Bus? --> async subscribers
 
     XtResult erweitern/verbessern mit callbacks
-    injection (SimpleInjector) is it really necessary?
     socket als bus ? (eine Instanz in der App)
     Demistify for stacktrace
     Performance (Utf8)

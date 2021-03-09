@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Threading;
-using System.Threading.Tasks;
 using heitech.zer0mqXt.core;
 
 namespace zeromq.terminal
 {
+    ///<summary>
+    /// Test all the happy pathes for all socket types in the library but with inproc only
+    ///</summary>
     class Program
     {
 
@@ -12,7 +14,7 @@ namespace zeromq.terminal
         static void Main(string[] args)
         {
             handle = new ManualResetEvent(false);
-            var configuration = SocketConfiguration.InprocConfig("this-inproc-mama-" + Guid.NewGuid());
+            var configuration = SocketConfiguration.InprocConfig("this-inproc-sir-" + Guid.NewGuid());
             var socket = new Socket(configuration);
 
             socket.Respond<Request, Response>((rq) => 

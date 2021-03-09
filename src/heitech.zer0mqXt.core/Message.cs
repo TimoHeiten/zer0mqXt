@@ -8,6 +8,7 @@ namespace heitech.zer0mqXt.core
         where TMessage : class
     {
         private readonly Serializer _serializer;
+        private readonly SocketConfiguration _configuration;
         private readonly List<byte[]> _payload = new List<byte[]>(3);
 
         ///<summary>
@@ -25,11 +26,12 @@ namespace heitech.zer0mqXt.core
         private readonly bool _isSuccess;
         public TMessage Content { get; private set; }
 
-        internal Message(Serializer serializer, TMessage message, bool success = true)
+        internal Message(SocketConfiguration configuration, TMessage message, bool success = true)
         {
-            _isSuccess = success;
-            _serializer = serializer;
             Content = message;
+            _isSuccess = success;
+            _configuration = configuration;
+            _serializer = configuration.Serializer;
         }
 
         ///<summary>
@@ -38,28 +40,40 @@ namespace heitech.zer0mqXt.core
         /// <para>Frame 2 - Successful parsing and use of Incoming Instance of RequestType</para>
         /// <para>Frame 3 - Actual Payload and instance of the RequestType</para>
         ///</summary>
-        internal static XtResult<Message<TMessage>> ParseMessage(Serializer serializer, List<byte[]> bytes)
+        internal static XtResult<Message<TMessage>> ParseMessage(SocketConfiguration configuration, List<byte[]> bytes)
         {
             #region precondition checks
             if (bytes.Count != 3)
-                return XtResult<Message<TMessage>>.Failed(ZeroMqXtSocketException.MissedExpectedFrameCount(bytes.Count));
+            {
+                var exc = ZeroMqXtSocketException.MissedExpectedFrameCount(bytes.Count);
+                configuration.Logger.Log(new DebugLogMsg(exc.Message));
+                return XtResult<Message<TMessage>>.Failed(exc);
+            }
 
             string msgType = typeof(TMessage).FullName;
 
             byte[] frame = bytes.First();
-            string typeFromFrame = serializer.Deserialize<string>(frame);
+            string typeFromFrame = configuration.Serializer.Deserialize<string>(frame);
 
             if (typeFromFrame != msgType)
-                return XtResult<Message<TMessage>>.Failed(ZeroMqXtSocketException.Frame1RqTypeDoesNotMatch<TMessage>(typeFromFrame));
+            {
+                var exception = ZeroMqXtSocketException.Frame1RqTypeDoesNotMatch<TMessage>(typeFromFrame);
+                configuration.Logger.Log(new DebugLogMsg(exception.Message));
+                return XtResult<Message<TMessage>>.Failed(exception);
+            }
 
-            bool isSuccess = Convert.ToBoolean(serializer.Deserialize<string>(bytes[1]));
+            bool isSuccess = Convert.ToBoolean(configuration.Serializer.Deserialize<string>(bytes[1]));
             if (!isSuccess)
-                return XtResult<Message<TMessage>>.Failed(new InvalidCastException("could not cast " + serializer.Encoding.GetString(bytes[1])+ " to boolean!"));
+            {
+                var excptn = new InvalidOperationException("Frame2 holds " + configuration.Serializer.Encoding.GetString(bytes[1]) + " therefore the Message cannot be savely parsed and is thrown out instead");
+                configuration.Logger.Log(new DebugLogMsg(excptn.Message));
+                return XtResult<Message<TMessage>>.Failed(excptn);
+            }
             #endregion
 
             // actual message body deserialization
-            TMessage result = serializer.Deserialize<TMessage>(bytes.Last());
-            return XtResult<Message<TMessage>>.Success(new Message<TMessage>(serializer, result));
+            TMessage result = configuration.Serializer.Deserialize<TMessage>(bytes.Last());
+            return XtResult<Message<TMessage>>.Success(new Message<TMessage>(configuration, result));
         }
     }
 }

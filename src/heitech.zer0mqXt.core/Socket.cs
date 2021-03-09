@@ -23,8 +23,9 @@ namespace heitech.zer0mqXt.core
             {
                 return await DoRequestAsync<T, TResult>(request);
             }
-            catch (NetMQ.EndpointNotFoundException)
+            catch (NetMQ.EndpointNotFoundException ntfnd)
             {
+                _configuration.Logger.Log(new ErrorLogMsg($"NetMQ.Endpoint could not be found at {_configuration.Address()}: " + ntfnd.Message));
                 await Task.Delay((int)_configuration.TimeOut.TotalMilliseconds);
                 try
                 {
@@ -32,11 +33,13 @@ namespace heitech.zer0mqXt.core
                 }
                 catch (System.Exception inner)
                 {
+                    _configuration.Logger.Log(new ErrorLogMsg("Request failed after Retry: " + inner.Message));
                     return XtResult<TResult>.Failed(inner);
                 }
             }
             catch (System.Exception ex)
             {
+                _configuration.Logger.Log(new ErrorLogMsg("Request failed: " + ex.Message));
                 return XtResult<TResult>.Failed(ex);
             }
         }
@@ -45,10 +48,11 @@ namespace heitech.zer0mqXt.core
             where T : class, new()
             where TResult : class
         {
+            _configuration.Logger.Log(new DebugLogMsg($"Send Request<{typeof(T)}, {typeof(TResult)}> to Address - {_configuration.Address()}"));
             using var rqSocket = new RequestSocket();
             rqSocket.Connect(_configuration.Address());
 
-            var message = new Message<T>(_configuration.Serializer, request);
+            var message = new Message<T>(_configuration, request);
 
             return await Task.Run(() => 
             {
@@ -63,7 +67,7 @@ namespace heitech.zer0mqXt.core
                 if (!noTimeOut)
                     return XtResult<TResult>.Failed(new TimeoutException($"Request<{typeof(T)}, {typeof(TResult)}> timed out"));
 
-                var xtResult = Message<TResult>.ParseMessage(_configuration.Serializer, payload);
+                var xtResult = Message<TResult>.ParseMessage(_configuration, payload);
 
                 return xtResult.IsSuccess
                         ? XtResult<TResult>.Success(xtResult.GetResult().Content)
@@ -100,18 +104,19 @@ namespace heitech.zer0mqXt.core
                     try
                     {
                         List<byte[]> bytes = rsSocket.ReceiveMultipartBytes(3);
-                        var xtResult = Message<T>.ParseMessage(_configuration.Serializer, bytes);
+                        _configuration.Logger.Log(new DebugLogMsg($"handling response for [Request:{typeof(T)}] and [Response:{typeof(TResult)}]"));
+                        var xtResult = Message<T>.ParseMessage(_configuration, bytes);
 
                         TResult content = factory(xtResult.IsSuccess ? xtResult.GetResult().Content : new T());
-                        message = new Message<TResult>(_configuration.Serializer, content, success: xtResult.IsSuccess);
+                        message = new Message<TResult>(_configuration, content, success: xtResult.IsSuccess);
                     }
-                    catch (System.Exception)
+                    catch (System.Exception ex)
                     {
-                        // todo Logger logs here
+                        _configuration.Logger.Log(new ErrorLogMsg($"Responding to [Request:{typeof(T)}] with [Response:{typeof(TResult)}] did fail: " + ex.Message));
                         // failure to parse or any other exception leads to a non successful response, which will be handled on the request side
-                        message = new Message<TResult>(_configuration.Serializer, default(TResult), success: false);
+                        message = new Message<TResult>(_configuration, default(TResult), success: false);
                     }
-                    // todo try send here, else get back to loop
+                    // todo use try send here, else get back to loop
                     rsSocket.SendMoreFrame(message.RequestTypeFrame)
                             .SendMoreFrame(message.Success)
                             .SendFrame(message.Payload);
