@@ -6,18 +6,24 @@ Idee:
     Logging für jeden Step
 
 core
-	var config = new SocketConfig();
-	config.Remote = true;// default is inProc
-	config.AddressPort = 5555;
-	var socket = new Socket(config);
-	
-	Socket.RequestAsync<T>();
-	Socket.PublishAsync<T>();
-	Socket.SubscribeTo<T>(eventCallback<T>);
-
-
 	later:
-		Router dealer socket
+		async / Router dealer socket
 		Discovery
-		
-		
+        Pub / Sub
+
+Backlog:
+features
+    Logging (LibLog)
+    XtResult erweitern/verbessern mit callbacks
+    injection (SimpleInjector)
+    socket als bus ? (eine Instanz in der App)
+    Demistify for stacktrace
+    Retries auf request ebene
+    Performance (Utf8)
+
+    CleanUp (also in tests)
+
+sonstiges
+    automatisierte tests
+    github hochladen
+    last test

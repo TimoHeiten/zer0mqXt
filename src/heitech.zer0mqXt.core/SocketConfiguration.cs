@@ -5,23 +5,32 @@ namespace heitech.zer0mqXt.core
 {
     public abstract class SocketConfiguration
     {
+        ///<summary>
+        /// Uses Utf8Json by default (for performance reasons). But you can also use Newtonsoft or supply your own serialization
+        ///</summary>
+        public Serializer Serializer { get; set; }
         internal abstract string Address();
+
+        protected SocketConfiguration()
+        {
+            Encoding = Encoding.UTF8;
+            TimeOut = TimeSpan.FromSeconds(5);
+            Serializer = Serializer.UseNewtonsoft(Encoding);
+        }
 
         ///<summary>
         /// By default it is UTF8
         ///</summary>
-        public Encoding Encoding { get; set; } = Encoding.UTF8;
+        public Encoding Encoding { get; set; } 
 
         ///<summary>
         /// Default Timeout is 5 seconds
         ///</summary>
-        public TimeSpan TimeOut { get; set; } = TimeSpan.FromSeconds(5);
+        public TimeSpan TimeOut { get; set; }
 
         public static Inproc InprocConfig(string name) => new Inproc(name);
-
         public static Tcp TcpConfig(string port) => new Tcp(port);
         public static Tcp TcpConfig(string port, string host) => new Tcp(port, host);
-
 
         public sealed class Tcp : SocketConfiguration
         {
