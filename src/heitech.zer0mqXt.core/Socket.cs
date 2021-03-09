@@ -52,6 +52,7 @@ namespace heitech.zer0mqXt.core
 
             return await Task.Run(() => 
             {
+                // todo try send here (response server could be blocked)
                 rqSocket.SendMoreFrame(message.RequestTypeFrame)
                         .SendMoreFrame(message.Success)
                         .SendFrame(message.Payload);
@@ -76,18 +77,21 @@ namespace heitech.zer0mqXt.core
 
 
         ///<summary>
-        /// currently blocks 
+        /// Register Callback on the Respond Action at the server, can also register a callback to control how long the server will be running in the background
         ///</summary>
         public void Respond<T, TResult>(Func<T, TResult> factory, Func<bool> stillBlocking = null)
             where T : class, new()
             where TResult : class
         {
+            // handle notifies when the server is set up
             eventHandle = new ManualResetEvent(false);
+            // create a new background thread with the response callback
             Task.Run(() => 
             {
                 using var rsSocket = new ResponseSocket();
                 rsSocket.Bind(_configuration.Address());
 
+                // open resetevent after binding to the socket, and block after that
                 eventHandle.Set();
 
                 while (stillBlocking == null ? !killSwitch : stillBlocking())
@@ -104,14 +108,16 @@ namespace heitech.zer0mqXt.core
                     catch (System.Exception)
                     {
                         // todo Logger logs here
+                        // failure to parse or any other exception leads to a non successful response, which will be handled on the request side
                         message = new Message<TResult>(_configuration.Serializer, default(TResult), success: false);
                     }
+                    // todo try send here, else get back to loop
                     rsSocket.SendMoreFrame(message.RequestTypeFrame)
                             .SendMoreFrame(message.Success)
                             .SendFrame(message.Payload);
                 }
             });
-
+            // wait for the Set inside the background thread
             eventHandle.WaitOne();
         }
 

@@ -1,7 +1,7 @@
 
 Idee:
-	ZeroMq wegabstrahieren und type safe machen
-	eine Instanz zur Verwendung, die den gewünschten Socket bei Bedarf baut.
+	abstract ZeroMq and have type safe protocol for inproc and tcp
+	use a single Instance and configure in a simple way, without the need to understand all intricate details of ZeroMQ
 
     Logging für jeden Step
 
@@ -9,21 +9,23 @@ core
 	later:
 		async / Router dealer socket
 		Discovery
-        Pub / Sub
 
 Backlog:
 features
-    Logging (LibLog)
+    Logging (microsoft logging?)
+    Pub / Sub / Publisher / Sub and Bus? --> async subscribers
+
     XtResult erweitern/verbessern mit callbacks
-    injection (SimpleInjector)
+    injection (SimpleInjector) is it really necessary?
     socket als bus ? (eine Instanz in der App)
     Demistify for stacktrace
-    Retries auf request ebene
     Performance (Utf8)
 
-    CleanUp (also in tests)
+    Tests:
+        Complex Types
+        inheritance for types?
+
 
 sonstiges
-    automatisierte tests
     github hochladen
-    last test
+    last test 100 K Messages 

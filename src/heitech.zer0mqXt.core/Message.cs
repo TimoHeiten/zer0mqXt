@@ -40,6 +40,7 @@ namespace heitech.zer0mqXt.core
         ///</summary>
         internal static XtResult<Message<TMessage>> ParseMessage(Serializer serializer, List<byte[]> bytes)
         {
+            #region precondition checks
             if (bytes.Count != 3)
                 return XtResult<Message<TMessage>>.Failed(ZeroMqXtSocketException.MissedExpectedFrameCount(bytes.Count));
 
@@ -54,9 +55,10 @@ namespace heitech.zer0mqXt.core
             bool isSuccess = Convert.ToBoolean(serializer.Deserialize<string>(bytes[1]));
             if (!isSuccess)
                 return XtResult<Message<TMessage>>.Failed(new InvalidCastException("could not cast " + serializer.Encoding.GetString(bytes[1])+ " to boolean!"));
+            #endregion
 
+            // actual message body deserialization
             TMessage result = serializer.Deserialize<TMessage>(bytes.Last());
-
             return XtResult<Message<TMessage>>.Success(new Message<TMessage>(serializer, result));
         }
     }

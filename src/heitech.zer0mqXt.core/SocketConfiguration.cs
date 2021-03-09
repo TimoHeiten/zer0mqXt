@@ -6,7 +6,7 @@ namespace heitech.zer0mqXt.core
     public abstract class SocketConfiguration
     {
         ///<summary>
-        /// Uses Utf8Json by default (for performance reasons). But you can also use Newtonsoft or supply your own serialization
+        /// Uses Newtonsoft by default. But you can also use Utf8Json or supply your own serialization
         ///</summary>
         public Serializer Serializer { get; set; }
         internal abstract string Address();
