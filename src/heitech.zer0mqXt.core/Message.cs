@@ -33,7 +33,10 @@ namespace heitech.zer0mqXt.core
         }
 
         ///<summary>
-        /// Construct a Message from ReceivedFrames
+        /// Construct a Message from ReceivedFrames - according to 
+        /// <para>Frame 1 - RequestType</para>
+        /// <para>Frame 2 - Successful parsing and use of Incoming Instance of RequestType</para>
+        /// <para>Frame 3 - Actual Payload and instance of the RequestType</para>
         ///</summary>
         internal static XtResult<Message<TMessage>> ParseMessage(Serializer serializer, List<byte[]> bytes)
         {

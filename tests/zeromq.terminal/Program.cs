@@ -15,7 +15,7 @@ namespace zeromq.terminal
             var configuration = SocketConfiguration.InprocConfig("this-inproc-mama-" + Guid.NewGuid());
             var socket = new Socket(configuration);
 
-            socket.RespondTo<Request, Response>((rq) => 
+            socket.Respond<Request, Response>((rq) => 
             {
                 System.Console.WriteLine();
                 System.Console.WriteLine("now calling the factory");
@@ -25,7 +25,6 @@ namespace zeromq.terminal
 
                 return rsp;
             });
-            // Thread.Sleep(150);
 
             System.Console.WriteLine("try request");
             XtResult<Response> result = socket.RequestAsync<Request, Response>(new Request()).Result;
