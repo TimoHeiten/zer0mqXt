@@ -1,6 +1,9 @@
 ﻿using System;
+using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using heitech.zer0mqXt.core;
+using NetMQ;
 
 namespace zeromq.terminal
 {
@@ -9,12 +12,48 @@ namespace zeromq.terminal
     ///</summary>
     class Program
     {
-
-        private static ManualResetEvent handle;
         static void Main(string[] args)
         {
-            handle = new ManualResetEvent(false);
+            var version = args.FirstOrDefault();
             var configuration = SocketConfiguration.InprocConfig("this-inproc-sir-" + Guid.NewGuid());
+            
+            if (version != null)
+                RunPubSub(configuration);
+            else
+                RunReqRep(configuration);
+
+            NetMQConfig.Cleanup();
+        }
+
+        private static void RunPubSub(SocketConfiguration configuration)
+        {
+
+            // todo does not work yet...messages are not received by the subscribers...
+            var pubSub = new PubSub(configuration);
+            Task.Run(() => 
+            {
+                System.Console.WriteLine("setting up the subscriber");
+                pubSub.SubscribeHandler<Message>(
+                    (m) => System.Console.WriteLine("message came in: " + m.Text)
+                ).Wait();
+            });
+            Thread.Sleep(150);
+
+            System.Console.WriteLine("now publishes");
+            var input = "";
+            while (input != "quit")
+            {
+                System.Console.WriteLine("publish next one");
+                var xt = pubSub.PublishAsync(new Message() { Text = "publsihed!" }).Result;
+                System.Console.WriteLine(xt);
+
+                Thread.Sleep(1000);
+                input = Console.ReadLine();
+            }
+        }
+
+        private static void RunReqRep(SocketConfiguration configuration)
+        {
             var socket = new Socket(configuration);
 
             socket.Respond<Request, Response>((rq) => 
@@ -46,5 +85,7 @@ namespace zeromq.terminal
         {
             public string InsideResponse { get; set; } = "Message inside Response";
         }
+
+        private class Message { public string Text { get; set; } }
     }
 }
