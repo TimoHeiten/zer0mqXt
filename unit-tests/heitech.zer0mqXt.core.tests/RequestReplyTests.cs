@@ -1,30 +1,15 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
+using static heitech.zer0mqXt.core.tests.ConfigurationTestData;
+
 namespace heitech.zer0mqXt.core.tests
 {
     public class RequestReplyTests
     {
-        private static SocketWrapper CreateSocket(SocketConfiguration configuration)
-            => new SocketWrapper(new Socket(configuration));
-
-        private class SocketWrapper : IDisposable
-        {
-            public Socket Socket;
-            public SocketWrapper(Socket socket)
-            {
-                this.Socket = socket;
-            }
-
-            public void Dispose()
-            {
-                Socket.Dispose();
-            }
-        }
 
         [Theory]
         [ClassData(typeof(ConfigurationTestData))]
@@ -53,10 +38,10 @@ namespace heitech.zer0mqXt.core.tests
             var sut = wrapper.Socket;
             sut.Respond<Request, Response>(rq => throw new TimeoutException());
 
-            //   Act
+            // Act
              var xtResult = await sut.RequestAsync<Request, Response>(new Request { RequestNumber = 42 });
 
-            //   Assert
+            // Assert
              Assert.False(xtResult.IsSuccess);
              Assert.NotNull(xtResult.Exception);
          }
@@ -134,21 +119,31 @@ namespace heitech.zer0mqXt.core.tests
              Assert.False(xtResult.IsSuccess);
          }
 
-        //todo cancel server, stops response
+        [Fact]
+        public async Task AsyncRqRep()
+        {
+             // fails
+             // todo change to be able to use task (for now it needs parameterless ctor so it can be newed, which task obv does not support)
+             // Arrange
+             var ipc = new ConfigurationTestData().GetSocketConfigInProc;
+             using var socket = CreateSocket(ipc);
+             var sut = socket.Socket;
+             sut.Respond<Request, Task<Response>>(r => 
+             {
+                return Task.FromResult(new Response { ResponseNumber = (int)Math.Pow(r.RequestNumber, r.RequestNumber)});
+             });
+
+            // Act
+            var result = await sut.RequestAsync<Request, Response>(new Request { RequestNumber = 2 });
+
+            // Assert
+            Assert.True(result.IsSuccess);
+        }
+
+        // todo cancel server, stops response
+        // todo multiple servers for same type (Contestion?)
 
         private class Request { public int RequestNumber { get; set; } }
         private class Response { public int ResponseNumber { get; set; } }
-
-
-        public class ConfigurationTestData : IEnumerable<object[]>
-        {
-            public IEnumerator<object[]> GetEnumerator()
-            {
-                yield return new object[] { SocketConfiguration.InprocConfig("test-pipe") };
-                yield return new object[] { SocketConfiguration.TcpConfig(port: "5566", host: "localhost") };
-            }
-
-            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-        }
     }
 }

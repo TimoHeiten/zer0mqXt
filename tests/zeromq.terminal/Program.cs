@@ -27,27 +27,26 @@ namespace zeromq.terminal
 
         private static void RunPubSub(SocketConfiguration configuration)
         {
-
-            // todo does not work yet...messages are not received by the subscribers...
+            // only works with InProc
             var pubSub = new PubSub(configuration);
             Task.Run(() => 
             {
                 System.Console.WriteLine("setting up the subscriber");
                 pubSub.SubscribeHandler<Message>(
                     (m) => System.Console.WriteLine("message came in: " + m.Text)
-                ).Wait();
+                );
             });
-            Thread.Sleep(150);
-
+            
+            Thread.Sleep(1000);
+            
             System.Console.WriteLine("now publishes");
             var input = "";
             while (input != "quit")
             {
                 System.Console.WriteLine("publish next one");
-                var xt = pubSub.PublishAsync(new Message() { Text = "publsihed!" }).Result;
+                var xt = pubSub.PublishAsync(new Message() {Text = "publsihed!"}).Result;
                 System.Console.WriteLine(xt);
 
-                Thread.Sleep(1000);
                 input = Console.ReadLine();
             }
         }

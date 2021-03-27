@@ -1,79 +1,115 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
+using NetMQ;
 
 namespace heitech.zer0mqXt.core
 {
-    public class Message<TMessage>
+    public abstract class Message<TMessage>
         where TMessage : class
     {
-        private readonly Serializer _serializer;
-        private readonly SocketConfiguration _configuration;
-        private readonly List<byte[]> _payload = new List<byte[]>(3);
-
-        ///<summary>
-        /// Frame 1 - Type Name
-        ///</summary>
-        public byte[] RequestTypeFrame => _serializer.Serialize(typeof(TMessage).FullName);
-        ///<summary>
-        /// Frame 2 - Is Parsing etc Successful?
-        ///</summary>
-        public byte[] Success => _serializer.Serialize<string>(_isSuccess.ToString());
-        ///<summary>
-        /// Frame 3 - actual Message Instance
-        ///</summary>
-        public byte[] Payload => _serializer.Serialize<TMessage>(Content);
-        private readonly bool _isSuccess;
+        protected Serializer _serializer;
+        protected SocketConfiguration _configuration;
+        protected byte[] TypeFrame => _serializer.Serialize(typeof(TMessage).TypeFrameName());
+        protected byte[] Payload => _serializer.Serialize<TMessage>(Content);
         public TMessage Content { get; private set; }
 
-        internal Message(SocketConfiguration configuration, TMessage message, bool success = true)
+        private protected Message(SocketConfiguration configuration, TMessage message)
         {
             Content = message;
-            _isSuccess = success;
             _configuration = configuration;
             _serializer = configuration.Serializer;
         }
 
+        protected internal abstract NetMQMessage ToNetMqMessage();
+        public static implicit operator NetMQMessage(Message<TMessage> self)
+        {
+            return self.ToNetMqMessage();
+        }
+    }
+
+    public static class MessageParser
+    {
+        internal static XtResult<TMessage> ParsePubSubMessage<TMessage>(this NetMQMessage msg, SocketConfiguration configuration)
+            where TMessage : class
+        {
+            const string operation = "parse-pub-sub-msg";
+            if (msg.FrameCount != 2)
+            {
+                var exc = ZeroMqXtSocketException.MissedExpectedFrameCount(msg.FrameCount);
+                configuration.Logger.Log(new DebugLogMsg(exc.Message));
+                return XtResult<TMessage>.Failed(ZeroMqXtSocketException.MissedExpectedFrameCount(msg.FrameCount, 2));
+            }
+            
+            var receivedType = configuration.Serializer.Deserialize<string>(msg.First.ToByteArray());
+            if (receivedType != typeof(TMessage).FullName)
+                return XtResult<TMessage>.Failed(ZeroMqXtSocketException.Frame1TypeDoesNotMatch<TMessage>(receivedType));
+
+            try
+            {
+                var instance = configuration.Serializer.Deserialize<TMessage>(msg.Last.ToByteArray());
+                return XtResult<TMessage>.Success(instance, operation: operation);
+            }
+            catch (System.Exception ex)
+            {
+                return XtResult<TMessage>.Failed(ex, operation: operation);
+            }
+
+        }
+
         ///<summary>
         /// Construct a Message from ReceivedFrames - according to 
-        /// <para>Frame 1 - RequestType</para>
-        /// <para>Frame 2 - Successful parsing and use of Incoming Instance of RequestType</para>
+        /// <para>Frame 1 - RequestTypeName</para>
+        /// <para>Frame 2 - Successful parsing and use of Incoming Instance of RequestType / on Response it is the successful deserialization</para>
         /// <para>Frame 3 - Actual Payload and instance of the RequestType</para>
         ///</summary>
-        internal static XtResult<Message<TMessage>> ParseMessage(SocketConfiguration configuration, List<byte[]> bytes)
+         internal static XtResult<TMessage> ParseRqRepMessage<TMessage>(this NetMQMessage msg, SocketConfiguration configuration)
+            where TMessage : class
         {
+            const string operation = "parse-rq-rep-msg";
             #region precondition checks
-            if (bytes.Count != 3)
+            if (msg.FrameCount != 3)
             {
-                var exc = ZeroMqXtSocketException.MissedExpectedFrameCount(bytes.Count);
+                var exc = ZeroMqXtSocketException.MissedExpectedFrameCount(msg.FrameCount);
                 configuration.Logger.Log(new DebugLogMsg(exc.Message));
-                return XtResult<Message<TMessage>>.Failed(exc);
+                return XtResult<TMessage>.Failed(exc, operation);
             }
 
-            string msgType = typeof(TMessage).FullName;
+            byte[] typeFrame = msg.Pop().ToByteArray();
+            byte[] successFrame = msg.Pop().ToByteArray();
+            byte[] payloadFrame = msg.Pop().ToByteArray();
 
-            byte[] frame = bytes.First();
-            string typeFromFrame = configuration.Serializer.Deserialize<string>(frame);
-
+            string msgType = typeof(TMessage).TypeFrameName();
+            string typeFromFrame = configuration.Serializer.Deserialize<string>(typeFrame);
             if (typeFromFrame != msgType)
             {
-                var exception = ZeroMqXtSocketException.Frame1RqTypeDoesNotMatch<TMessage>(typeFromFrame);
+                var exception = ZeroMqXtSocketException.Frame1TypeDoesNotMatch<TMessage>(typeFromFrame);
                 configuration.Logger.Log(new DebugLogMsg(exception.Message));
-                return XtResult<Message<TMessage>>.Failed(exception);
+                return XtResult<TMessage>.Failed(exception, operation);
             }
 
-            bool isSuccess = Convert.ToBoolean(configuration.Serializer.Deserialize<string>(bytes[1]));
+            bool isSuccess = Convert.ToBoolean(configuration.Serializer.Deserialize<string>(successFrame));
             if (!isSuccess)
             {
-                var excptn = new InvalidOperationException("Frame2 holds " + configuration.Serializer.Encoding.GetString(bytes[1]) + " therefore the Message cannot be savely parsed and is thrown out instead");
+                var excptn = new InvalidOperationException("Frame2 holds " + configuration.Serializer.Encoding.GetString(successFrame) + " therefore the Message cannot be savely parsed and is disregarded instead");
                 configuration.Logger.Log(new DebugLogMsg(excptn.Message));
-                return XtResult<Message<TMessage>>.Failed(excptn);
+                return XtResult<TMessage>.Failed(excptn, operation);
             }
             #endregion
 
-            // actual message body deserialization
-            TMessage result = configuration.Serializer.Deserialize<TMessage>(bytes.Last());
-            return XtResult<Message<TMessage>>.Success(new Message<TMessage>(configuration, result));
+            try
+            {
+                // actual message body deserialization
+                TMessage result = configuration.Serializer.Deserialize<TMessage>(payloadFrame);
+                if (result == default(TMessage))
+                    return XtResult<TMessage>.Failed(new ArgumentNullException($"{typeof(TMessage)} yielded the default value on deserializing! Proceeding is not safe."), operation);
+
+                return XtResult<TMessage>.Success(result, operation);
+            }
+            catch (System.Exception ex)
+            {
+                return XtResult<TMessage>.Failed(ZeroMqXtSocketException.SerializationFailed(ex.Message), operation);
+            }
         }
+
+        public static string TypeFrameName(this Type type) => type.FullName; // todo rather use fullyqualifed name (assembly)
     }
 }

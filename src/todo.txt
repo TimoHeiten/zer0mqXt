@@ -25,3 +25,26 @@ features
 sonstiges
     github hochladen
     last test 100 K Messages 
+
+
+extra projects for each serializer package
+    a la
+    heitech.zeroMqXt.Serializing.Utf8json
+    heitech.zeroMqXt.Serializing.Newtonsoftjson
+
+
+integrate netmq users 
+    derive socket from their netmqsocket with extension methods
+
+Operation as Enum
+Context for every Call
+    Operation
+    In / Out processing
+    MessageType
+    FrameCount
+
+
+Todo Failure scenarios
+    check what happens if more than one server is setup with the same type for Rq/Rep
+
+    async Response?

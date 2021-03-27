@@ -1,13 +1,12 @@
 using NetMQ;
 using NetMQ.Sockets;
 using System;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace heitech.zer0mqXt.core
 {
-    public class Socket : IDisposable
+    public sealed class Socket : IDisposable
     {
         private readonly SocketConfiguration _configuration;
         public Socket(SocketConfiguration configuration)
@@ -17,7 +16,7 @@ namespace heitech.zer0mqXt.core
 
         public async Task<XtResult<TResult>> RequestAsync<T, TResult>(T request)
             where T : class, new()
-            where TResult : class
+            where TResult : class, new()
         {
             try
             {
@@ -48,40 +47,42 @@ namespace heitech.zer0mqXt.core
             where T : class, new()
             where TResult : class
         {
+            const string operation = "request";
+
             _configuration.Logger.Log(new DebugLogMsg($"Send Request<{typeof(T)}, {typeof(TResult)}> to Address - {_configuration.Address()}"));
             using var rqSocket = new RequestSocket();
             rqSocket.Connect(_configuration.Address());
 
-            var message = new Message<T>(_configuration, request);
+            var message = new RequestReplyMessage<T>(_configuration, request);
 
             return await Task.Run(() => 
             {
-                // todo try send here (response server could be blocked)
-                rqSocket.SendMoreFrame(message.RequestTypeFrame)
-                        .SendMoreFrame(message.Success)
-                        .SendFrame(message.Payload);
+                // the request to be send with timeout
+                bool rqDidNotTimeOut = rqSocket.TrySendMultipartMessage(_configuration.TimeOut, message);
+                if (!rqDidNotTimeOut)
+                    return XtResult<TResult>.Failed(new TimeoutException($"Request<{typeof(T)}, {typeof(TResult)}> timed out"), operation);
 
-                var payload = new List<byte[]>();
-                bool noTimeOut = rqSocket.TryReceiveMultipartBytes(_configuration.TimeOut, ref payload, expectedFrameCount: 3);
-
+                // wait for the response with timeout
+                var response = new NetMQMessage();
+                bool noTimeOut = rqSocket.TryReceiveMultipartMessage(_configuration.TimeOut, ref response, expectedFrameCount: 3);
                 if (!noTimeOut)
-                    return XtResult<TResult>.Failed(new TimeoutException($"Request<{typeof(T)}, {typeof(TResult)}> timed out"));
+                    return XtResult<TResult>.Failed(new TimeoutException($"Request<{typeof(T)}, {typeof(TResult)}> timed out"), operation);
 
-                var xtResult = Message<TResult>.ParseMessage(_configuration, payload);
+                // parse the response and return the result
+                var xtResult = response.ParseRqRepMessage<TResult>(_configuration);
 
                 return xtResult.IsSuccess
-                        ? XtResult<TResult>.Success(xtResult.GetResult().Content)
-                        : XtResult<TResult>.Failed(xtResult.Exception);
+                        ? XtResult<TResult>.Success(xtResult.GetResult(), operation)
+                        : XtResult<TResult>.Failed(xtResult.Exception, operation);
             });
         }
-
 
         private ManualResetEvent eventHandle;
         private bool killSwitch = false;
 
-
         ///<summary>
         /// Register Callback on the Respond Action at the server, can also register a callback to control how long the server will be running in the background
+        /// <para>Each type and each method call register a single thread for this type according to the configuration</para>
         ///</summary>
         public void Respond<T, TResult>(Func<T, TResult> factory, Func<bool> stillBlocking = null)
             where T : class, new()
@@ -100,26 +101,29 @@ namespace heitech.zer0mqXt.core
 
                 while (stillBlocking == null ? !killSwitch : stillBlocking())
                 {
-                    Message<TResult> message = null;
+                    Message<TResult> response = null;
                     try
                     {
-                        List<byte[]> bytes = rsSocket.ReceiveMultipartBytes(3);
+                        // block on this thread for incoming requests of the Type
+                        NetMQMessage incomingRequest = rsSocket.ReceiveMultipartMessage();
                         _configuration.Logger.Log(new DebugLogMsg($"handling response for [Request:{typeof(T)}] and [Response:{typeof(TResult)}]"));
-                        var xtResult = Message<T>.ParseMessage(_configuration, bytes);
 
-                        TResult content = factory(xtResult.IsSuccess ? xtResult.GetResult().Content : new T());
-                        message = new Message<TResult>(_configuration, content, success: xtResult.IsSuccess);
+                        var actualRequestResult = incomingRequest.ParseRqRepMessage<T>(_configuration);
+                        TResult result = factory(actualRequestResult.IsSuccess ? actualRequestResult.GetResult() : new T());
+
+                        response = new RequestReplyMessage<TResult>(_configuration, result, actualRequestResult.IsSuccess);
                     }
                     catch (System.Exception ex)
                     {
+                        // failure to parse or any other exception leads to a non successful response, which then in turn can be handled on the request side
+                        // todo exception propagation?
                         _configuration.Logger.Log(new ErrorLogMsg($"Responding to [Request:{typeof(T)}] with [Response:{typeof(TResult)}] did fail: " + ex.Message));
-                        // failure to parse or any other exception leads to a non successful response, which will be handled on the request side
-                        message = new Message<TResult>(_configuration, default(TResult), success: false);
+                        response = new RequestReplyMessage<TResult>(_configuration, default(TResult), success: false);
                     }
-                    // todo use try send here, else get back to loop
-                    rsSocket.SendMoreFrame(message.RequestTypeFrame)
-                            .SendMoreFrame(message.Success)
-                            .SendFrame(message.Payload);
+                    // try send response with timeout
+                    bool noTimeout = rsSocket.TrySendMultipartMessage(_configuration.TimeOut, response);
+                    if (!noTimeout)
+                        _configuration.Logger.Log(new ErrorLogMsg($"Responding to [Request:{typeof(T)}] with [Response:{typeof(TResult)}] timed-out after {_configuration.TimeOut}"));
                 }
             });
             // wait for the Set inside the background thread
@@ -129,7 +133,7 @@ namespace heitech.zer0mqXt.core
         #region Dispose
         private bool disposedValue;
 
-        protected virtual void Dispose(bool disposing)
+        private void Dispose(bool disposing)
         {
             if (!disposedValue)
             {

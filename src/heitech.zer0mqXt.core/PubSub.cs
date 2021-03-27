@@ -1,73 +1,125 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using NetMQ;
 using NetMQ.Sockets;
 
 namespace heitech.zer0mqXt.core
 {
-    public class PubSub
+    // currently only works correctly for inproc 
+    public class PubSub : IDisposable
     {
-        private readonly SocketConfiguration configuration;
-
+        private readonly SocketConfiguration _configuration;
         public PubSub(SocketConfiguration configuration)
         {
-            this.configuration = configuration;
+            this._configuration = configuration;
         }
 
         public async Task<XtResult<TMessage>> PublishAsync<TMessage>(TMessage message)
             where TMessage : class
         {
             using var pubSocket = new PublisherSocket();
-            pubSocket.Bind("tcp://*:12345"); // configuration.Address()
+            pubSocket.Connect(_configuration.Address());
 
             return await Task.Run(() => 
             {
                 try
                 {
-                    var msg = new Message<TMessage>(configuration, message);
-                    pubSocket.SendMoreFrame(msg.RequestTypeFrame) // this time around it is the Topic
-                            .SendFrame(msg.Payload);
+                    var msg = new PubSubMessage<TMessage>(_configuration, message);
+                    pubSocket.SendMultipartMessage(msg);
                 }
                 catch (System.Exception ex)
                 {
-                    return XtResult<TMessage>.Failed(ex);
-                    throw;
+                    return XtResult<TMessage>.Failed(ex, "publish");
                 }
 
-                return XtResult<TMessage>.Success(message);
+                return XtResult<TMessage>.Success(message, "publish");
             });
         }
 
-        public Task SubscribeHandler<TMessage>(Action<TMessage> callback, Func<bool> unsubscribeWhen = null)
-            where TMessage : class
+
+        private ManualResetEvent eventHandle;
+        ///<summary>
+        /// Register a Subscriber for the type TMessage
+        /// <para>The unsubscribe callback is used to stop the subscriber</para>
+        ///</summary>
+        public void SubscribeHandler<TMessage>(Action<TMessage> callback, Func<bool> unsubscribeWhen = null)
+            where TMessage : class, new()
         {
-            using var subSocket = new SubscriberSocket();
-            subSocket.Connect("tcp://localhost:12345"); //configuration.Address());
-            subSocket.Subscribe(typeof(TMessage).Name);
+            // handle notifies when the server is set up
+            eventHandle = new ManualResetEvent(false);
+            Exception exception = null;
 
-            while (unsubscribeWhen == null ? true : unsubscribeWhen())
+            Task.Run(() => 
             {
-                configuration.Logger.Log(new DebugLogMsg("now blocks in subscriber"));
-                
-                List<byte[]> payload = subSocket.ReceiveMultipartBytes(2);
-                var successBytes = configuration.Encoding.GetBytes(true.ToString());
-                payload = new [] { payload[0], successBytes, payload[1] }.ToList();
-                var xtResult = Message<TMessage>.ParseMessage(configuration, payload);
+                using var subSocket = new SubscriberSocket();
+                try
+                {
+                    string catchAllTopic = "";
+                    subSocket.Bind(_configuration.Address());
+                    subSocket.Subscribe(catchAllTopic);
+                    _configuration.Logger.Log(new DebugLogMsg($"subscribed to [{typeof(TMessage)}]"));
+                }
+                catch (NetMQ.EndpointNotFoundException ntfnd)
+                {
+                    _configuration.Logger.Log(new ErrorLogMsg(ntfnd.Message));
+                    exception = ntfnd;
+                }
+                // open resetevent after binding to the socket, and block after that
+                eventHandle.Set();
+                if (exception is not null) 
+                    return;
 
-                if (xtResult.IsSuccess)
-                    configuration.Logger.Log(new DebugLogMsg("done waiting"));
-                else
-                    configuration.Logger.Log(new ErrorLogMsg("failed the subscriber " + xtResult.Exception.Message));
-            }
-            return Task.CompletedTask;
+                bool isRunning = true;
+                while (isRunning)
+                {
+                    try
+                    {
+                        NetMQMessage received = subSocket.ReceiveMultipartMessage();
+                        var actualMessage = received.ParsePubSubMessage<TMessage>(_configuration);
+                        callback(actualMessage.IsSuccess ? actualMessage.GetResult() : new TMessage());
+                    }
+                    catch (NetMQ.TerminatingException trmnt)
+                    {
+                        isRunning = false;
+                        _configuration.Logger.Log(new ErrorLogMsg($"Subscriber handle for [Message:{typeof(TMessage)}] did fail: " + trmnt.Message));
+                    }
+                    catch (System.Exception ex)
+                    {
+                        _configuration.Logger.Log(new ErrorLogMsg($"Subscriber handle for [Message:{typeof(TMessage)}] did fail: " + ex.Message));
+                    }
+                    isRunning = isRunning && (unsubscribeWhen?.Invoke() ?? true);
+                }
+            });
+
+            eventHandle.WaitOne();
+            if (exception is not null) 
+                throw exception;
         }
 
         public async Task SubscribeAsyncHandler<TMessage>(Func<TMessage, Task> asyncCallback)
         {
+            // todo
             await Task.CompletedTask;
         }
 
+        #region Dispose
+        private bool disposedValue;
+
+        private void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                NetMQConfig.Cleanup();
+                disposedValue = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
+        #endregion
     }
 }

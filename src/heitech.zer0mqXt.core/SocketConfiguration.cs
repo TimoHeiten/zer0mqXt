@@ -15,11 +15,11 @@ namespace heitech.zer0mqXt.core
         ///</summary>
         public ILogger Logger { get; set; }
 
-        protected SocketConfiguration()
+        private protected SocketConfiguration()
         {
             Logger = new BasicLogger();
             Encoding = Encoding.UTF8;
-            TimeOut = TimeSpan.FromSeconds(5);
+            TimeOut = TimeSpan.FromSeconds(15);
             Serializer = Serializer.UseNewtonsoft(Encoding);
         }
 
@@ -29,7 +29,7 @@ namespace heitech.zer0mqXt.core
         public Encoding Encoding { get; set; } 
 
         ///<summary>
-        /// Default Timeout is 5 seconds
+        /// Default Timeout is 15 seconds
         ///</summary>
         public TimeSpan TimeOut { get; set; }
 
