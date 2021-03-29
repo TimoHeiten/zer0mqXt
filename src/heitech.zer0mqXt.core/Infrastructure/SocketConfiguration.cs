@@ -1,7 +1,7 @@
 using System;
 using System.Text;
 
-namespace heitech.zer0mqXt.core
+namespace heitech.zer0mqXt.core.infrastructure
 {
     public abstract class SocketConfiguration
     {

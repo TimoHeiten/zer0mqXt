@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using heitech.zer0mqXt.core.infrastructure;
+using heitech.zer0mqXt.core.patterns;
 using Xunit;
 
 using static heitech.zer0mqXt.core.tests.ConfigurationTestData;

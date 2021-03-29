@@ -1,7 +1,8 @@
 using System;
+using heitech.zer0mqXt.core.infrastructure;
 using NetMQ;
 
-namespace heitech.zer0mqXt.core
+namespace heitech.zer0mqXt.core.transport
 {
     public abstract class Message<TMessage>
         where TMessage : class

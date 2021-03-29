@@ -3,6 +3,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using heitech.zer0mqXt.core;
+using heitech.zer0mqXt.core.infrastructure;
+using heitech.zer0mqXt.core.patterns;
 using NetMQ;
 
 namespace zeromq.terminal

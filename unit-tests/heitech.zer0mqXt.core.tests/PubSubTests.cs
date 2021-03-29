@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using heitech.zer0mqXt.core.infrastructure;
 using Xunit;
 
 using static heitech.zer0mqXt.core.tests.ConfigurationTestData;

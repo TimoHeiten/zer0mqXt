@@ -1,6 +1,7 @@
+using heitech.zer0mqXt.core.infrastructure;
 using NetMQ;
 
-namespace heitech.zer0mqXt.core
+namespace heitech.zer0mqXt.core.transport
 {
     public class RequestReplyMessage<TMessage> : Message<TMessage>
         where TMessage : class

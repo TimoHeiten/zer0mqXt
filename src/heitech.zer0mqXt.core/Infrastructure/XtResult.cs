@@ -1,6 +1,6 @@
 using System;
 
-namespace heitech.zer0mqXt.core
+namespace heitech.zer0mqXt.core.infrastructure
 {
     ///<summary>
     /// Represents the Result of a zer0mqXt Message Interaction

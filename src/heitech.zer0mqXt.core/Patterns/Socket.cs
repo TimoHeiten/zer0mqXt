@@ -1,10 +1,12 @@
+using heitech.zer0mqXt.core.infrastructure;
+using heitech.zer0mqXt.core.transport;
 using NetMQ;
 using NetMQ.Sockets;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace heitech.zer0mqXt.core
+namespace heitech.zer0mqXt.core.patterns
 {
     public sealed class Socket : IDisposable
     {

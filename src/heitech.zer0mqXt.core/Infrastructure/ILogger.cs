@@ -1,5 +1,5 @@
 
-namespace heitech.zer0mqXt.core
+namespace heitech.zer0mqXt.core.infrastructure
 {
     public interface ILogger
     {

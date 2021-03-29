@@ -1,6 +1,6 @@
 using System;
 
-namespace heitech.zer0mqXt.core
+namespace heitech.zer0mqXt.core.infrastructure
 {
     public class ZeroMqXtSocketException : Exception
     {

@@ -1,6 +1,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using heitech.zer0mqXt.core.infrastructure;
+using heitech.zer0mqXt.core.patterns;
 
 namespace heitech.zer0mqXt.core.tests
 {
