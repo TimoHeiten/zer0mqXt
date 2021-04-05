@@ -80,13 +80,18 @@ namespace heitech.zer0mqXt.core.patterns
         }
 
         private ManualResetEvent eventHandle;
-        private bool killSwitch = false;
+        private bool runReponder = true;
+        private CancellationToken token = default;
+        private CancellationToken UseBestToken(CancellationToken fromParameter)
+        {
+            return fromParameter == default ? this.token : fromParameter;
+        }
 
         ///<summary>
         /// Register Callback on the Respond Action at the server, can also register a callback to control how long the server will be running in the background
         /// <para>Each type and each method call register a single thread for this type according to the configuration</para>
         ///</summary>
-        public void Respond<T, TResult>(Func<T, TResult> factory, Func<bool> stillBlocking = null)
+        public void Respond<T, TResult>(Func<T, TResult> factory, bool respondOnce = false, CancellationToken cancellationToken = default)
             where T : class, new()
             where TResult : class
         {
@@ -101,7 +106,7 @@ namespace heitech.zer0mqXt.core.patterns
                 // open resetevent after binding to the socket, and block after that
                 eventHandle.Set();
 
-                while (stillBlocking == null ? !killSwitch : stillBlocking())
+                while (runReponder)
                 {
                     Message<TResult> response = null;
                     try
@@ -118,7 +123,6 @@ namespace heitech.zer0mqXt.core.patterns
                     catch (System.Exception ex)
                     {
                         // failure to parse or any other exception leads to a non successful response, which then in turn can be handled on the request side
-                        // todo exception propagation?
                         _configuration.Logger.Log(new ErrorLogMsg($"Responding to [Request:{typeof(T)}] with [Response:{typeof(TResult)}] did fail: " + ex.Message));
                         response = new RequestReplyMessage<TResult>(_configuration, default(TResult), success: false);
                     }
@@ -126,10 +130,18 @@ namespace heitech.zer0mqXt.core.patterns
                     bool noTimeout = rsSocket.TrySendMultipartMessage(_configuration.TimeOut, response);
                     if (!noTimeout)
                         _configuration.Logger.Log(new ErrorLogMsg($"Responding to [Request:{typeof(T)}] with [Response:{typeof(TResult)}] timed-out after {_configuration.TimeOut}"));
+
+                    if (respondOnce)
+                        runReponder = false;
                 }
-            });
+            }, UseBestToken(cancellationToken));
             // wait for the Set inside the background thread
             eventHandle.WaitOne();
+        }
+
+        public void StopResponding() 
+        {
+
         }
 
         #region Dispose
@@ -141,7 +153,7 @@ namespace heitech.zer0mqXt.core.patterns
             {
                 if (disposing)
                 {
-                    killSwitch = true;
+                    runReponder = false;
                     NetMQConfig.Cleanup();
                 }
                 disposedValue = true;

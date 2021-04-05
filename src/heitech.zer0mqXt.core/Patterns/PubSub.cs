@@ -101,7 +101,6 @@ namespace heitech.zer0mqXt.core.patterns
 
         public async Task SubscribeAsyncHandler<TMessage>(Func<TMessage, Task> asyncCallback)
         {
-            // todo
             await Task.CompletedTask;
         }
 

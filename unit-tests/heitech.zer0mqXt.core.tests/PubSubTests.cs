@@ -48,7 +48,6 @@ namespace heitech.zer0mqXt.core.tests
             await Assert.ThrowsAsync<NetMQ.EndpointNotFoundException>(pub);
         }
 
-        // todo if tcp for pub sub, turn arround subscriber and publisher connect/bind and the order in which you invoke them
         [Fact]
         public Task SimplePubSub_Tcp()
         {

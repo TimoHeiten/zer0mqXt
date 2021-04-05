@@ -21,6 +21,11 @@ features
         Complex Types
         inheritance for types?
 
+PubSub
+    make tcp work
+    timeot / endpoint not found retry policy
+    CancellationToken for the Subscriber
+    Subscriberasync
 
 sonstiges
     github hochladen
@@ -36,15 +41,18 @@ extra projects for each serializer package
 integrate netmq users 
     derive socket from their netmqsocket with extension methods
 
-Operation as Enum
-Context for every Call
-    Operation
-    In / Out processing
-    MessageType
-    FrameCount
-
 
 Todo Failure scenarios
     check what happens if more than one server is setup with the same type for Rq/Rep
-
     async Response?
+
+
+others:
+    transport.Message: todo rather use fullyqualifed name (assembly)
+    Socket.Respond catch block:  exception propagation?
+    // todo if tcp for pub sub, turn arround subscriber and publisher connect/bind and the order in which you invoke them
+
+unit-Tests
+     // todo cancel server, stops response
+    // todo multiple servers for same type (Contestion?)
+    // todo change to be able to use task (for now it needs parameterless ctor so it can be newed, which task obv does not support)
