@@ -95,39 +95,48 @@ namespace heitech.zer0mqXt.core.patterns
             // create a new background thread with the response callback
             Task.Run(() => 
             {
-                using var rsSocket = new ResponseSocket();
-                rsSocket.Bind(_configuration.Address());
-
-                // open resetevent after binding to the socket, and block after that
-                eventHandle.Set();
-
-                while (runReponder)
+                try
                 {
-                    Message<TResult> response = null;
-                    try
+                    using var rsSocket = new ResponseSocket();
+                    rsSocket.Bind(_configuration.Address());
+
+                    // open resetevent after binding to the socket, and block after that
+                    eventHandle.Set();
+
+                    while (runReponder)
                     {
-                        // block on this thread for incoming requests of the Type
-                        NetMQMessage incomingRequest = rsSocket.ReceiveMultipartMessage();
-                        _configuration.Logger.Log(new DebugLogMsg($"handling response for [Request:{typeof(T)}] and [Response:{typeof(TResult)}]"));
+                        Message<TResult> response = null;
+                        try
+                        {
+                            // block on this thread for incoming requests of the Type
+                            NetMQMessage incomingRequest = rsSocket.ReceiveMultipartMessage();
+                            _configuration.Logger.Log(new DebugLogMsg($"handling response for [Request:{typeof(T)}] and [Response:{typeof(TResult)}]"));
 
-                        var actualRequestResult = incomingRequest.ParseRqRepMessage<T>(_configuration);
-                        TResult result = factory(actualRequestResult.IsSuccess ? actualRequestResult.GetResult() : new T());
+                            var actualRequestResult = incomingRequest.ParseRqRepMessage<T>(_configuration);
+                            TResult result = factory(actualRequestResult.IsSuccess ? actualRequestResult.GetResult() : new T());
 
-                        response = new RequestReplyMessage<TResult>(_configuration, result, actualRequestResult.IsSuccess);
+                            response = new RequestReplyMessage<TResult>(_configuration, result, actualRequestResult.IsSuccess);
+
+                        }
+                        catch (System.Exception ex)
+                        {
+                            // failure to parse or any other exception leads to a non successful response, which then in turn can be handled on the request side
+                            _configuration.Logger.Log(new ErrorLogMsg($"Responding to [Request:{typeof(T)}] with [Response:{typeof(TResult)}] did fail: " + ex.Message));
+                            response = new RequestReplyMessage<TResult>(_configuration, default(TResult), success: false);
+                        }
+
+                        // try send response with timeout
+                        bool noTimeout = rsSocket.TrySendMultipartMessage(_configuration.TimeOut, response);
+                        if (!noTimeout)
+                            _configuration.Logger.Log(new ErrorLogMsg($"Responding to [Request:{typeof(T)}] with [Response:{typeof(TResult)}] timed-out after {_configuration.TimeOut}"));
+
+                        if (respondOnce || cancellationToken.IsCancellationRequested)
+                            runReponder = false;
                     }
-                    catch (System.Exception ex)
-                    {
-                        // failure to parse or any other exception leads to a non successful response, which then in turn can be handled on the request side
-                        _configuration.Logger.Log(new ErrorLogMsg($"Responding to [Request:{typeof(T)}] with [Response:{typeof(TResult)}] did fail: " + ex.Message));
-                        response = new RequestReplyMessage<TResult>(_configuration, default(TResult), success: false);
-                    }
-                    // try send response with timeout
-                    bool noTimeout = rsSocket.TrySendMultipartMessage(_configuration.TimeOut, response);
-                    if (!noTimeout)
-                        _configuration.Logger.Log(new ErrorLogMsg($"Responding to [Request:{typeof(T)}] with [Response:{typeof(TResult)}] timed-out after {_configuration.TimeOut}"));
-
-                    if (respondOnce || cancellationToken.IsCancellationRequested)
-                        runReponder = false;
+                }
+                catch (NetMQ.TerminatingException terminating)
+                {
+                    _configuration.Logger.Log(new ErrorLogMsg(terminating.Message));
                 }
             }, cancellationToken == default ? CancellationToken.None : cancellationToken);
             // wait for the Set inside the background thread
