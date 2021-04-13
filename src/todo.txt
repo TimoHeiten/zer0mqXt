@@ -12,8 +12,8 @@ Backlog:
 features
     Pub / Sub / Publisher / Sub and Bus? --> async subscribers
 
-    XtResult erweitern/verbessern mit callbacks
-    socket als bus ? (eine Instanz in der App)
+    extend XtResult with callbacks 
+    socket as a bus ? (single instance to access all handler types)
     Demistify for stacktrace
     Performance (Utf8)
 
@@ -27,9 +27,8 @@ PubSub
     CancellationToken for the Subscriber
     Subscriberasync
 
-sonstiges
-    github hochladen
-    last test 100 K Messages 
+misc
+    load test with 10 K Messages / s
 
 
 extra projects for each serializer package
@@ -44,8 +43,6 @@ integrate netmq users
 
 Todo Failure scenarios
     check what happens if more than one server is setup with the same type for Rq/Rep
-    async Response?
-
 
 others:
     transport.Message: todo rather use fullyqualifed name (assembly)
