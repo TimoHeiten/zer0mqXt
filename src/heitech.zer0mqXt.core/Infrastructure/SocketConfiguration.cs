@@ -1,5 +1,6 @@
 using System;
 using System.Text;
+using NetMQ;
 
 namespace heitech.zer0mqXt.core.infrastructure
 {
@@ -36,6 +37,8 @@ namespace heitech.zer0mqXt.core.infrastructure
         public static Inproc InprocConfig(string name) => new Inproc(name);
         public static Tcp TcpConfig(string port) => new Tcp(port);
         public static Tcp TcpConfig(string port, string host) => new Tcp(port, host);
+
+        public static void CleanUp() => NetMQConfig.Cleanup();
 
         public sealed class Tcp : SocketConfiguration
         {

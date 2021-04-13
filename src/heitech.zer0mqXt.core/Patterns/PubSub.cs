@@ -111,7 +111,6 @@ namespace heitech.zer0mqXt.core.patterns
         {
             if (!disposedValue)
             {
-                NetMQConfig.Cleanup();
                 disposedValue = true;
             }
         }
