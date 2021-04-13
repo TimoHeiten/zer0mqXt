@@ -81,11 +81,6 @@ namespace heitech.zer0mqXt.core.patterns
 
         private ManualResetEvent eventHandle;
         private bool runReponder = true;
-        private CancellationToken token = default;
-        private CancellationToken UseBestToken(CancellationToken fromParameter)
-        {
-            return fromParameter == default ? this.token : fromParameter;
-        }
 
         ///<summary>
         /// Register Callback on the Respond Action at the server, can also register a callback to control how long the server will be running in the background
@@ -131,17 +126,12 @@ namespace heitech.zer0mqXt.core.patterns
                     if (!noTimeout)
                         _configuration.Logger.Log(new ErrorLogMsg($"Responding to [Request:{typeof(T)}] with [Response:{typeof(TResult)}] timed-out after {_configuration.TimeOut}"));
 
-                    if (respondOnce)
+                    if (respondOnce || cancellationToken.IsCancellationRequested)
                         runReponder = false;
                 }
-            }, UseBestToken(cancellationToken));
+            }, cancellationToken == default ? CancellationToken.None : cancellationToken);
             // wait for the Set inside the background thread
             eventHandle.WaitOne();
-        }
-
-        public void StopResponding() 
-        {
-
         }
 
         #region Dispose

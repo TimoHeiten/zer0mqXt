@@ -29,7 +29,7 @@ namespace zeromq.terminal
         private static async Task RunPubSub(SocketConfiguration configuration)
         {
             // it works only for InProc right now
-            var pubSub = new PubSub(configuration);
+            using var pubSub = new PubSub(configuration);
             await Task.Run(() => 
             {
                 System.Console.WriteLine("setting up the subscriber");
@@ -43,7 +43,7 @@ namespace zeromq.terminal
             while (input != "quit")
             {
                 System.Console.WriteLine("publish next one");
-                var xt = await pubSub.PublishAsync(new Message() {Text = "publsihed!"});
+                var xt = await pubSub.PublishAsync(new Message() {Text = "published!"});
                 System.Console.WriteLine(xt);
 
                 input = Console.ReadLine();
@@ -52,10 +52,8 @@ namespace zeromq.terminal
 
         private static async Task RunReqRep(SocketConfiguration configuration)
         {
-            var socket = new Socket(configuration);
+            using var socket = new Socket(configuration);
 
-            var cts = new CancellationTokenSource();
-            var token = cts.Token;
             socket.Respond<Request, Response>((rq) => 
             {
                 System.Console.WriteLine();
