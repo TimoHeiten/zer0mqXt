@@ -111,6 +111,6 @@ namespace heitech.zer0mqXt.core.transport
             }
         }
 
-        public static string TypeFrameName(this Type type) => type.FullName; // todo rather use fullyqualifed name (assembly)
+        public static string TypeFrameName(this Type type) => type.FullName;
     }
 }

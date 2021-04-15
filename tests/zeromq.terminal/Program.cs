@@ -2,7 +2,6 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using heitech.zer0mqXt.core;
 using heitech.zer0mqXt.core.infrastructure;
 using heitech.zer0mqXt.core.patterns;
 using NetMQ;
@@ -14,24 +13,24 @@ namespace zeromq.terminal
     ///</summary>
     class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             var version = args.FirstOrDefault();
             var configuration = SocketConfiguration.InprocConfig("this-inproc-sir-" + Guid.NewGuid());
             
             if (version != null)
-                RunPubSub(configuration);
+                await RunPubSub(configuration);
             else
-                RunReqRep(configuration);
+                await RunReqRep(configuration);
 
             NetMQConfig.Cleanup();
         }
 
-        private static void RunPubSub(SocketConfiguration configuration)
+        private static async Task RunPubSub(SocketConfiguration configuration)
         {
-            // only works with InProc
-            var pubSub = new PubSub(configuration);
-            Task.Run(() => 
+            // it works only for InProc right now
+            using var pubSub = new PubSub(configuration);
+            await Task.Run(() => 
             {
                 System.Console.WriteLine("setting up the subscriber");
                 pubSub.SubscribeHandler<Message>(
@@ -39,23 +38,21 @@ namespace zeromq.terminal
                 );
             });
             
-            Thread.Sleep(1000);
-            
             System.Console.WriteLine("now publishes");
             var input = "";
             while (input != "quit")
             {
                 System.Console.WriteLine("publish next one");
-                var xt = pubSub.PublishAsync(new Message() {Text = "publsihed!"}).Result;
+                var xt = await pubSub.PublishAsync(new Message() {Text = "published!"});
                 System.Console.WriteLine(xt);
 
                 input = Console.ReadLine();
             }
         }
 
-        private static void RunReqRep(SocketConfiguration configuration)
+        private static async Task RunReqRep(SocketConfiguration configuration)
         {
-            var socket = new Socket(configuration);
+            using var socket = new Socket(configuration);
 
             socket.Respond<Request, Response>((rq) => 
             {
@@ -64,17 +61,18 @@ namespace zeromq.terminal
                 System.Console.WriteLine();
                 var rsp = new Response();
                 rsp.InsideResponse += " " + rq.FromRequest;
-
+                
                 return rsp;
-            });
+            }, respondOnce: true);
 
             System.Console.WriteLine("try request");
-            XtResult<Response> result = socket.RequestAsync<Request, Response>(new Request()).Result;
-            System.Console.WriteLine(result);
+            XtResult<Response> result = await socket.RequestAsync<Request, Response>(new Request());
             if (result.IsSuccess)
                 System.Console.WriteLine("SUCCEESS!! " + result.GetResult().InsideResponse);
             else
                 System.Console.WriteLine("FAILURE!! " + result.Exception);
+
+            socket.Dispose();
         }
 
         private class Request 
