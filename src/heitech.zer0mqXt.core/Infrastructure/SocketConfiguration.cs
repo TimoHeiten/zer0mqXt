@@ -20,7 +20,7 @@ namespace heitech.zer0mqXt.core.infrastructure
         {
             Logger = new BasicLogger();
             Encoding = Encoding.UTF8;
-            TimeOut = TimeSpan.FromSeconds(15);
+            TimeOut = TimeSpan.FromSeconds(5);
             Serializer = Serializer.UseNewtonsoft(Encoding);
         }
 
