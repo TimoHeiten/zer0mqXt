@@ -80,13 +80,13 @@ namespace heitech.zer0mqXt.core.patterns
         }
 
         private ManualResetEvent eventHandle;
-        private bool killSwitch = false;
+        private bool runReponder = true;
 
         ///<summary>
         /// Register Callback on the Respond Action at the server, can also register a callback to control how long the server will be running in the background
         /// <para>Each type and each method call register a single thread for this type according to the configuration</para>
         ///</summary>
-        public void Respond<T, TResult>(Func<T, TResult> factory, Func<bool> stillBlocking = null)
+        public void Respond<T, TResult>(Func<T, TResult> factory, bool respondOnce = false, CancellationToken cancellationToken = default)
             where T : class, new()
             where TResult : class
         {
@@ -95,39 +95,50 @@ namespace heitech.zer0mqXt.core.patterns
             // create a new background thread with the response callback
             Task.Run(() => 
             {
-                using var rsSocket = new ResponseSocket();
-                rsSocket.Bind(_configuration.Address());
-
-                // open resetevent after binding to the socket, and block after that
-                eventHandle.Set();
-
-                while (stillBlocking == null ? !killSwitch : stillBlocking())
+                try
                 {
-                    Message<TResult> response = null;
-                    try
-                    {
-                        // block on this thread for incoming requests of the Type
-                        NetMQMessage incomingRequest = rsSocket.ReceiveMultipartMessage();
-                        _configuration.Logger.Log(new DebugLogMsg($"handling response for [Request:{typeof(T)}] and [Response:{typeof(TResult)}]"));
+                    using var rsSocket = new ResponseSocket();
+                    rsSocket.Bind(_configuration.Address());
 
-                        var actualRequestResult = incomingRequest.ParseRqRepMessage<T>(_configuration);
-                        TResult result = factory(actualRequestResult.IsSuccess ? actualRequestResult.GetResult() : new T());
+                    // open resetevent after binding to the socket, and block after that
+                    eventHandle.Set();
 
-                        response = new RequestReplyMessage<TResult>(_configuration, result, actualRequestResult.IsSuccess);
-                    }
-                    catch (System.Exception ex)
+                    while (runReponder)
                     {
-                        // failure to parse or any other exception leads to a non successful response, which then in turn can be handled on the request side
-                        // todo exception propagation?
-                        _configuration.Logger.Log(new ErrorLogMsg($"Responding to [Request:{typeof(T)}] with [Response:{typeof(TResult)}] did fail: " + ex.Message));
-                        response = new RequestReplyMessage<TResult>(_configuration, default(TResult), success: false);
+                        Message<TResult> response = null;
+                        try
+                        {
+                            // block on this thread for incoming requests of the Type
+                            NetMQMessage incomingRequest = rsSocket.ReceiveMultipartMessage();
+                            _configuration.Logger.Log(new DebugLogMsg($"handling response for [Request:{typeof(T)}] and [Response:{typeof(TResult)}]"));
+
+                            var actualRequestResult = incomingRequest.ParseRqRepMessage<T>(_configuration);
+                            TResult result = factory(actualRequestResult.IsSuccess ? actualRequestResult.GetResult() : new T());
+
+                            response = new RequestReplyMessage<TResult>(_configuration, result, actualRequestResult.IsSuccess);
+
+                        }
+                        catch (System.Exception ex)
+                        {
+                            // failure to parse or any other exception leads to a non successful response, which then in turn can be handled on the request side
+                            _configuration.Logger.Log(new ErrorLogMsg($"Responding to [Request:{typeof(T)}] with [Response:{typeof(TResult)}] did fail: " + ex.Message));
+                            response = new RequestReplyMessage<TResult>(_configuration, default(TResult), success: false);
+                        }
+
+                        // try send response with timeout
+                        bool noTimeout = rsSocket.TrySendMultipartMessage(_configuration.TimeOut, response);
+                        if (!noTimeout)
+                            _configuration.Logger.Log(new ErrorLogMsg($"Responding to [Request:{typeof(T)}] with [Response:{typeof(TResult)}] timed-out after {_configuration.TimeOut}"));
+
+                        if (respondOnce || cancellationToken.IsCancellationRequested)
+                            runReponder = false;
                     }
-                    // try send response with timeout
-                    bool noTimeout = rsSocket.TrySendMultipartMessage(_configuration.TimeOut, response);
-                    if (!noTimeout)
-                        _configuration.Logger.Log(new ErrorLogMsg($"Responding to [Request:{typeof(T)}] with [Response:{typeof(TResult)}] timed-out after {_configuration.TimeOut}"));
                 }
-            });
+                catch (NetMQ.TerminatingException terminating)
+                {
+                    _configuration.Logger.Log(new ErrorLogMsg(terminating.Message));
+                }
+            }, cancellationToken == default ? CancellationToken.None : cancellationToken);
             // wait for the Set inside the background thread
             eventHandle.WaitOne();
         }
@@ -141,8 +152,7 @@ namespace heitech.zer0mqXt.core.patterns
             {
                 if (disposing)
                 {
-                    killSwitch = true;
-                    NetMQConfig.Cleanup();
+                    runReponder = false;
                 }
                 disposedValue = true;
             }
