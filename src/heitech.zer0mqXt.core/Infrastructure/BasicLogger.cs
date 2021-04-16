@@ -8,6 +8,7 @@ namespace heitech.zer0mqXt.core.infrastructure
     public class BasicLogger : ILogger
     {
         public int MaxLogLevel = 3;
+        
 
         public void Log(LogMessage message)
         {
@@ -30,6 +31,16 @@ namespace heitech.zer0mqXt.core.infrastructure
             coloring.Apply();
             Console.Write(message + Environment.NewLine);
             coloring.Dispose();
+        }
+
+        public void SetLogLevel(int level)
+        {
+            MaxLogLevel = level;
+        }
+
+        public void SetSilent()
+        {
+            MaxLogLevel = -100;
         }
 
         private class ConsoleColoring : IDisposable

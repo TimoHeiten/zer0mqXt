@@ -38,7 +38,7 @@ namespace heitech.zer0mqXt.core.infrastructure
         public static Tcp TcpConfig(string port) => new Tcp(port);
         public static Tcp TcpConfig(string port, string host) => new Tcp(port, host);
 
-        public static void CleanUp() => NetMQConfig.Cleanup();
+        public static void CleanUp() {  }
 
         public sealed class Tcp : SocketConfiguration
         {

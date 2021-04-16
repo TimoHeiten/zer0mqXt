@@ -65,6 +65,7 @@ namespace heitech.zer0mqXt.core.transport
          internal static XtResult<TMessage> ParseRqRepMessage<TMessage>(this NetMQMessage msg, SocketConfiguration configuration)
             where TMessage : class
         {
+            configuration.Logger.Log(new DebugLogMsg($"parsing [{typeof(TMessage)}]"));
             const string operation = "parse-rq-rep-msg";
             #region precondition checks
             if (msg.FrameCount != 3)
@@ -103,6 +104,7 @@ namespace heitech.zer0mqXt.core.transport
                 if (result == default(TMessage))
                     return XtResult<TMessage>.Failed(new ArgumentNullException($"{typeof(TMessage)} yielded the default value on deserializing! Proceeding is not safe."), operation);
 
+                configuration.Logger.Log(new DebugLogMsg($"parsing was successful for [{typeof(TMessage)}]"));
                 return XtResult<TMessage>.Success(result, operation);
             }
             catch (System.Exception ex)

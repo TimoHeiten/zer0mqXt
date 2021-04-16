@@ -4,6 +4,8 @@ namespace heitech.zer0mqXt.core.infrastructure
     public interface ILogger
     {
         void Log(LogMessage message);
+        void SetLogLevel(int level);
+        void SetSilent();
     }
 
     ///<summary>

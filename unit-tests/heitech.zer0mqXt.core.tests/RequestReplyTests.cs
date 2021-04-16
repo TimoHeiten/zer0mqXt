@@ -17,8 +17,9 @@ namespace heitech.zer0mqXt.core.tests
         public async Task SimpleRequestAndReply_InProc(SocketConfiguration configuration)
         {
             // Arrange
-            using var wrapper = CreateSocket(configuration);
-            var sut = wrapper.Socket;
+            // using var wrapper = CreateSocket(configuration);
+            var sut = new Socket(configuration);
+            // var sut = wrapper.Socket;
             sut.Respond<Request, Response>(rq => new Response { ResponseNumber = rq.RequestNumber });
 
             // Act
@@ -27,6 +28,7 @@ namespace heitech.zer0mqXt.core.tests
             // Assert
             Assert.True(xtResult.IsSuccess);
             Assert.Equal(42, xtResult.GetResult().ResponseNumber);
+            sut.Dispose();
         }
 
         [Theory]
@@ -34,8 +36,7 @@ namespace heitech.zer0mqXt.core.tests
         public async Task SimpleRequestAndReply_Fails_when_factory_throws_Exception_But_still_gets_an_answer(SocketConfiguration configuration)
         {
             // Arrange
-            using var wrapper = CreateSocket(configuration);
-            var sut = wrapper.Socket;
+            var sut = new Socket(configuration);
             sut.Respond<Request, Response>(rq => throw new TimeoutException());
 
             // Act
@@ -44,6 +45,7 @@ namespace heitech.zer0mqXt.core.tests
             // Assert
             Assert.False(xtResult.IsSuccess);
             Assert.NotNull(xtResult.Exception);
+            sut.Dispose();
         }
 
         [Theory]
@@ -51,8 +53,7 @@ namespace heitech.zer0mqXt.core.tests
         public async Task Multiple_Threads_Send_To_One_Responder_Works(SocketConfiguration configuration)
         {
             // Arrange
-            using var wrapper = CreateSocket(configuration);
-            var sut = wrapper.Socket;
+            var sut = new Socket(configuration);
             sut.Respond<Request, Response>(rq => new Response { ResponseNumber = rq.RequestNumber });
             var input_output_Tuples = new List<(int, int)>();
             var taskList = new List<Task>()
@@ -68,6 +69,8 @@ namespace heitech.zer0mqXt.core.tests
             //   Assert
             foreach (var (_in, _out) in input_output_Tuples)
                 Assert.Equal(_in, _out);
+
+            sut.Dispose();
         }
 
         private async Task DoMultipleRequestAsync(Socket sut, int input, List<(int, int)> input_output_Tuples)
@@ -83,8 +86,7 @@ namespace heitech.zer0mqXt.core.tests
         {
             // Arrange
             configuration.TimeOut = TimeSpan.FromMilliseconds(50);
-            using var wrapper = CreateSocket(configuration);
-            var sut = wrapper.Socket;
+            var sut = new Socket(configuration);
             // no server this time around
 
             // Act
@@ -92,6 +94,7 @@ namespace heitech.zer0mqXt.core.tests
 
             // Assert
             Assert.False(xtResult.IsSuccess);
+            sut.Dispose();
         }
 
         [Theory]
@@ -100,8 +103,7 @@ namespace heitech.zer0mqXt.core.tests
         {
             // Arrange
             configuration.TimeOut = TimeSpan.FromSeconds(1);
-            using var wrapper = CreateSocket(configuration);
-            var sut = wrapper.Socket;
+            var sut = new Socket(configuration);
             sut.Respond<Request, Response>(rq =>
             {
                 // is a timeout
@@ -114,7 +116,9 @@ namespace heitech.zer0mqXt.core.tests
 
             // Assert
             Assert.False(xtResult.IsSuccess);
+            sut.Dispose();
         }
+
 
         [Fact]
         public async Task AsyncRqRep()
@@ -124,8 +128,7 @@ namespace heitech.zer0mqXt.core.tests
             // fails
             // Arrange
             var ipc = new ConfigurationTestData().GetSocketConfigInProc;
-            using var socket = CreateSocket(ipc);
-            var sut = socket.Socket;
+            var sut = new Socket(ipc);
             sut.Respond<Request, Task<Response>>(r =>
             {
                 return Task.FromResult(new Response { ResponseNumber = (int)Math.Pow(r.RequestNumber, r.RequestNumber) });

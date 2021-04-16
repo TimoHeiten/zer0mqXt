@@ -65,11 +65,14 @@ namespace heitech.zer0mqXt.core.patterns
                 if (!rqDidNotTimeOut)
                     return XtResult<TResult>.Failed(new TimeoutException($"Request<{typeof(T)}, {typeof(TResult)}> timed out"), operation);
 
+                _configuration.Logger.Log(new DebugLogMsg($"successuflly sent [Request:{typeof(T)}] and waiting for response [Response:{typeof(TResult)}]"));
                 // wait for the response with timeout
                 var response = new NetMQMessage();
                 bool noTimeOut = rqSocket.TryReceiveMultipartMessage(_configuration.TimeOut, ref response, expectedFrameCount: 3);
                 if (!noTimeOut)
                     return XtResult<TResult>.Failed(new TimeoutException($"Request<{typeof(T)}, {typeof(TResult)}> timed out"), operation);
+                
+                _configuration.Logger.Log(new DebugLogMsg($"received Response [Response:{typeof(TResult)}]"));
 
                 // parse the response and return the result
                 var xtResult = response.ParseRqRepMessage<TResult>(_configuration);
@@ -128,10 +131,11 @@ namespace heitech.zer0mqXt.core.patterns
                     receiveHandler = (s, e) => ResponseHandlerCallback(responseSocket, factory, cancellationToken);
                     responseSocket.ReceiveReady += receiveHandler;
 
+                    // poller blocks, so it has to be started after the eventhandle is set
+                    poller.RunAsync();
+                    
                     // open resetevent after binding to the socket and when the poller is started
                     eventHandle.Set();
-                    // poller blocks, so it has to be started after the eventhandle is set
-                    poller.Run();
                 }
                 catch (Exception exception)
                 {
@@ -169,7 +173,7 @@ namespace heitech.zer0mqXt.core.patterns
                     TResult result = factory(actualRequestResult.IsSuccess ? actualRequestResult.GetResult() : new T());
 
                     response = new RequestReplyMessage<TResult>(_configuration, result, actualRequestResult.IsSuccess);
-
+                    _configuration.Logger.Log(new DebugLogMsg($"sending response for [Request:{typeof(T)}] and [Response:{typeof(TResult)}]"));
                 }
                 catch (System.Exception ex)
                 {
