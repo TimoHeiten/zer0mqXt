@@ -17,9 +17,7 @@ namespace heitech.zer0mqXt.core.tests
         public async Task SimpleRequestAndReply_InProc(SocketConfiguration configuration)
         {
             // Arrange
-            // using var wrapper = CreateSocket(configuration);
             var sut = new Socket(configuration);
-            // var sut = wrapper.Socket;
             sut.Respond<Request, Response>(rq => new Response { ResponseNumber = rq.RequestNumber });
 
             // Act
