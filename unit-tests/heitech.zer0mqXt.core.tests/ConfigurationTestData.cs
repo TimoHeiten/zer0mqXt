@@ -18,7 +18,9 @@ namespace heitech.zer0mqXt.core.tests
         {
             var inProc = GetSocketConfigInProc;
             inProc.Logger.SetSilent();
+
             var tcp = GetSocketConfigTcp;
+            tcp.TimeOut = TimeSpan.FromSeconds(10);
             tcp.Logger.SetSilent();
             
             yield return new object[] { inProc };
