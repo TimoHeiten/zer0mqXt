@@ -12,12 +12,11 @@ namespace heitech.zer0mqXt.core.tests
 {
     public class RequestReplyTests : IDisposable
     {
-        [Theory]
-        [ClassData(typeof(ConfigurationTestData))]
+        [Fact]
         public async Task SimpleRequestAndReply_InProc(SocketConfiguration configuration)
         {
             // Arrange
-            var sut = new Socket(configuration);
+            var sut = new Socket(new ConfigurationTestData().GetSocketConfigInProc);
             sut.Respond<Request, Response>(rq => new Response { ResponseNumber = rq.RequestNumber });
 
             // Act
