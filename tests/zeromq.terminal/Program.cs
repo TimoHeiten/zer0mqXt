@@ -22,7 +22,8 @@ namespace zeromq.terminal
             {
                 ["pubsub"] = RunPubSub,
                 ["reqrep"] = RunReqRep,
-                ["cancel"] = CancellationTokenOnRunningTask
+                ["cancel"] = CancellationTokenOnRunningTask,
+                ["async-server"] = RunRequestWithAsyncServer
             };
         }
         static async Task Main(string[] args)
@@ -94,6 +95,22 @@ namespace zeromq.terminal
             {
                 await RequestAndWriteResultAsync(socket);
             } 
+        }
+
+        private static async Task RunRequestWithAsyncServer(SocketConfiguration configuration)
+        {
+            var socket = new Socket(configuration);
+
+            socket.RespondAsync<Request, Response>(async r => 
+                {
+                    await Task.Delay(100);
+                    return new Response { InsideResponse = "waited asynchronously for 100ms" };
+                }
+            );
+
+            await RequestAndWriteResultAsync(socket);
+
+            socket.Dispose();
         }
 
         private static void SetupResponder(Socket socket, CancellationToken token = default)
