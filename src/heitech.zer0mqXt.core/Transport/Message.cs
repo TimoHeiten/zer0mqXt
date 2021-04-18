@@ -10,7 +10,12 @@ namespace heitech.zer0mqXt.core.transport
         protected Serializer _serializer;
         protected SocketConfiguration _configuration;
         protected byte[] TypeFrame => _serializer.Serialize(typeof(TMessage).TypeFrameName());
-        protected byte[] Payload => _serializer.Serialize<TMessage>(Content);
+        private byte[] payload;
+        protected byte[] Payload
+        {
+            get => payload;
+            set => payload = value;
+        } 
         public TMessage Content { get; private set; }
 
         private protected Message(SocketConfiguration configuration, TMessage message)
@@ -18,6 +23,14 @@ namespace heitech.zer0mqXt.core.transport
             Content = message;
             _configuration = configuration;
             _serializer = configuration.Serializer;
+            Payload = _serializer.Serialize<TMessage>(Content);
+        }
+
+        private protected Message(SocketConfiguration configuration, string errorMsg)
+        {
+            _configuration = configuration;
+            _serializer = configuration.Serializer;
+            Payload = _serializer.Serialize<string>(errorMsg);
         }
 
         protected internal abstract NetMQMessage ToNetMqMessage();
@@ -91,7 +104,8 @@ namespace heitech.zer0mqXt.core.transport
             bool isSuccess = Convert.ToBoolean(configuration.Serializer.Deserialize<string>(successFrame));
             if (!isSuccess)
             {
-                var excptn = new InvalidOperationException("Frame2 holds " + configuration.Serializer.Encoding.GetString(successFrame) + " therefore the Message cannot be savely parsed and is disregarded instead");
+                var exceptnText = configuration.Serializer.Deserialize<string>(payloadFrame);
+                var excptn = new ZeroMqXtSocketException("Server failed with" +  exceptnText);
                 configuration.Logger.Log(new DebugLogMsg(excptn.Message));
                 return XtResult<TMessage>.Failed(excptn, operation);
             }

@@ -138,6 +138,25 @@ namespace heitech.zer0mqXt.core.tests
             Assert.True(result.IsSuccess);
         }
 
+        [Fact]
+        public async Task Exception_propagation_when_server_response_Throws_to_Requester()
+        {
+             var ipc = new ConfigurationTestData().GetSocketConfigInProc;
+            var sut = new Socket(ipc);
+            sut.Respond<Request, Response>(r =>
+            {
+                throw new ArgumentException("this is a unit test proving the exception propagation works");
+            });
+
+            // Act
+            var result = await sut.RequestAsync<Request, Response>(new Request { RequestNumber = 2 });
+
+            // Assert
+            Assert.False(result.IsSuccess);
+            Assert.Contains("ArgumentException", result.Exception?.Message ?? "");
+            Assert.StartsWith("Server failed with" + Environment.NewLine + "ArgumentException", result.Exception.Message);
+        }
+
         public void Dispose()
         {
             SocketConfiguration.CleanUp();

@@ -179,7 +179,9 @@ namespace heitech.zer0mqXt.core.patterns
                 {
                     // failure to parse or any other exception leads to a non successful response, which then in turn can be handled on the request side
                     _configuration.Logger.Log(new ErrorLogMsg($"Responding to [Request:{typeof(T)}] with [Response:{typeof(TResult)}] did fail: " + ex.Message));
-                    response = new RequestReplyMessage<TResult>(_configuration, default(TResult), success: false);
+                    var msgParts = new [] { ex.GetType().Name, ex.Message, ex.StackTrace };
+                    var msg = Environment.NewLine + string.Join(Environment.NewLine, msgParts);
+                    response = RequestReplyMessage<TResult>.FromError(_configuration, msg);
                 }
 
                 // try send response with timeout
