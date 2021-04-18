@@ -138,6 +138,47 @@ namespace heitech.zer0mqXt.core.tests
             Assert.True(result.IsSuccess);
         }
 
+        [Fact]
+        public async Task Inheritance_for_req_rep_tested()
+        {
+            // Arrange
+            var configuration = new ConfigurationTestData().GetSocketConfigInProc;
+            configuration.Logger.SetSilent();
+            var sut = new Socket(configuration);
+            sut.Respond<InheritedRequest, InheritedResponse>(rq =>
+            {
+                return new InheritedResponse();
+            });
+
+            // Act
+            var xtResult = await sut.RequestAsync<Request, Response>(new Request());
+
+            // Assert
+            Assert.False(xtResult.IsSuccess);
+            sut.Dispose();
+        }
+
+
+        [Fact]
+        public async Task Inheritance_for_req_rep_tested_on_request_side()
+        {
+            // Arrange
+            var configuration = new ConfigurationTestData().GetSocketConfigInProc;
+            var sut = new Socket(configuration);
+            sut.Respond<Request, Response>(rq =>
+            {
+                return new Response();
+            });
+
+            // Act
+            var xtResult = await sut.RequestAsync<InheritedRequest, InheritedResponse>(new InheritedRequest());
+
+            // Assert
+            Assert.False(xtResult.IsSuccess);
+            sut.Dispose();
+            
+        }
+
         public void Dispose()
         {
             SocketConfiguration.CleanUp();
@@ -148,5 +189,21 @@ namespace heitech.zer0mqXt.core.tests
 
         private class Request { public int RequestNumber { get; set; } }
         private class Response { public int ResponseNumber { get; set; } }
+
+        private class InheritedRequest : Request
+        { 
+            public InheritedRequest()
+            {
+                RequestNumber = 110;
+            }
+        }
+
+        private class InheritedResponse : Response
+        { 
+            public InheritedResponse()
+            {
+                ResponseNumber = 220;
+            }
+        }
     }
 }
