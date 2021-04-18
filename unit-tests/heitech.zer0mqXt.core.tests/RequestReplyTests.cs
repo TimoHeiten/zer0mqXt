@@ -13,7 +13,7 @@ namespace heitech.zer0mqXt.core.tests
     public class RequestReplyTests : IDisposable
     {
         [Fact]
-        public async Task SimpleRequestAndReply_InProc(SocketConfiguration configuration)
+        public async Task SimpleRequestAndReply_InProc()
         {
             // Arrange
             var sut = new Socket(new ConfigurationTestData().GetSocketConfigInProc);
