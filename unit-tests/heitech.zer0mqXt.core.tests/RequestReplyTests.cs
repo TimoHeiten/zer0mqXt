@@ -5,13 +5,20 @@ using System.Threading.Tasks;
 using heitech.zer0mqXt.core.infrastructure;
 using heitech.zer0mqXt.core.patterns;
 using Xunit;
-
+using Xunit.Abstractions;
 using static heitech.zer0mqXt.core.tests.ConfigurationTestData;
 
 namespace heitech.zer0mqXt.core.tests
 {
     public class RequestReplyTests : IDisposable
     {
+
+        private readonly ITestOutputHelper output;
+        public RequestReplyTests(ITestOutputHelper output)
+        {
+            this.output = output;
+        }
+
         [Fact]
         public async Task SimpleRequestAndReply_InProc()
         {
@@ -120,13 +127,10 @@ namespace heitech.zer0mqXt.core.tests
         [Fact]
         public async Task AsyncRqRep()
         {
-            // todo change to be able to use task (for now it needs parameterless ctor so it can be newed, which task obv does not support)
-            return;
-            // fails
             // Arrange
             var ipc = new ConfigurationTestData().GetSocketConfigInProc;
             var sut = new Socket(ipc);
-            sut.Respond<Request, Task<Response>>(r =>
+            sut.RespondAsync<Request, Response>(r =>
             {
                 return Task.FromResult(new Response { ResponseNumber = (int)Math.Pow(r.RequestNumber, r.RequestNumber) });
             });
@@ -135,6 +139,7 @@ namespace heitech.zer0mqXt.core.tests
             var result = await sut.RequestAsync<Request, Response>(new Request { RequestNumber = 2 });
 
             // Assert
+            output.WriteLine(result.Exception?.Message ?? "no exception");
             Assert.True(result.IsSuccess);
         }
 
