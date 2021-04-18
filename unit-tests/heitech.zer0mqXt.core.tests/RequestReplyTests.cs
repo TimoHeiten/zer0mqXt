@@ -30,10 +30,10 @@ namespace heitech.zer0mqXt.core.tests
 
         [Theory]
         [ClassData(typeof(ConfigurationTestData))]
-        public async Task SimpleRequestAndReply_Fails_when_factory_throws_Exception_But_still_gets_an_answer(SocketConfiguration configuration)
+        public async Task SimpleRequestAndReply_Fails_when_factory_throws_Exception_But_still_gets_an_answer(object configuration)
         {
             // Arrange
-            var sut = new Socket(configuration);
+            var sut = new Socket((SocketConfiguration)configuration);
             sut.Respond<Request, Response>(rq => throw new TimeoutException());
 
             // Act
@@ -47,10 +47,10 @@ namespace heitech.zer0mqXt.core.tests
 
         [Theory]
         [ClassData(typeof(ConfigurationTestData))]
-        public async Task Multiple_Threads_Send_To_One_Responder_Works(SocketConfiguration configuration)
+        public async Task Multiple_Threads_Send_To_One_Responder_Works(object configuration)
         {
             // Arrange
-            var sut = new Socket(configuration);
+            var sut = new Socket((SocketConfiguration)configuration);
             sut.Respond<Request, Response>(rq => new Response { ResponseNumber = rq.RequestNumber });
             var input_output_Tuples = new List<(int, int)>();
             var taskList = new List<Task>()
@@ -79,11 +79,12 @@ namespace heitech.zer0mqXt.core.tests
 
         [Theory]
         [ClassData(typeof(ConfigurationTestData))]
-        public async Task Requests_Without_a_Server_returns_Endpoint_not_found_Exception(SocketConfiguration configuration)
+        public async Task Requests_Without_a_Server_returns_Endpoint_not_found_Exception(object configuration)
         {
             // Arrange
-            configuration.TimeOut = TimeSpan.FromMilliseconds(50);
-            var sut = new Socket(configuration);
+            var config = (SocketConfiguration)configuration;
+            config.TimeOut = TimeSpan.FromMilliseconds(50);
+            var sut = new Socket(config);
             // no server this time around
 
             // Act
@@ -96,11 +97,12 @@ namespace heitech.zer0mqXt.core.tests
 
         [Theory]
         [ClassData(typeof(ConfigurationTestData))]
-        public async Task Requests_With_Server_TimeOut_return_no_success(SocketConfiguration configuration)
+        public async Task Requests_With_Server_TimeOut_return_no_success(object configuration)
         {
             // Arrange
-            configuration.TimeOut = TimeSpan.FromSeconds(1);
-            var sut = new Socket(configuration);
+            var config = (SocketConfiguration)configuration;
+            config.TimeOut = TimeSpan.FromSeconds(1);
+            var sut = new Socket(config);
             sut.Respond<Request, Response>(rq =>
             {
                 // is a timeout

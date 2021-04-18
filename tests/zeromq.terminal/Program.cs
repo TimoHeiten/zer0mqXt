@@ -4,8 +4,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using heitech.zer0mqXt.core.infrastructure;
+using heitech.zer0mqXt.core.Main;
 using heitech.zer0mqXt.core.patterns;
-using NetMQ;
 
 namespace zeromq.terminal
 {
@@ -22,9 +22,11 @@ namespace zeromq.terminal
             {
                 ["pubsub"] = RunPubSub,
                 ["reqrep"] = RunReqRep,
-                ["cancel"] = CancellationTokenOnRunningTask
+                ["cancel"] = CancellationTokenOnRunningTask,
+                ["bus-all"] = UseBusInterface
             };
         }
+
         static async Task Main(string[] args)
         {
             var version = args.FirstOrDefault();
@@ -119,6 +121,18 @@ namespace zeromq.terminal
                 System.Console.WriteLine("SUCCEESS!! " + result.GetResult().InsideResponse);
             else
                 System.Console.WriteLine("FAILURE!! " + result.Exception);
+        }
+
+        private static async Task UseBusInterface(SocketConfiguration _)
+        {
+            var bus = Zer0Mq.Go().BuildWithInProc("bus-interface");
+
+            bus.Respond<Request, Response>((r) => new Response());
+
+            var response = await bus.RequestAsync<Request, Response>(new Request());
+            System.Console.WriteLine(response.InsideResponse);
+
+            bus.Dispose();
         }
 
         private class Request 

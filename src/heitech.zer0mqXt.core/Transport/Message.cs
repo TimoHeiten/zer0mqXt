@@ -1,13 +1,14 @@
 using System;
+using heitech.zer0mqXt.core.Adapters;
 using heitech.zer0mqXt.core.infrastructure;
 using NetMQ;
 
 namespace heitech.zer0mqXt.core.transport
 {
-    public abstract class Message<TMessage>
+    internal abstract class Message<TMessage>
         where TMessage : class
     {
-        protected Serializer _serializer;
+        protected ISerializerAdapter _serializer;
         protected SocketConfiguration _configuration;
         protected byte[] TypeFrame => _serializer.Serialize(typeof(TMessage).TypeFrameName());
         protected byte[] Payload => _serializer.Serialize<TMessage>(Content);

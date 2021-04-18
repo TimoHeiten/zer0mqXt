@@ -3,15 +3,18 @@ using heitech.zer0mqXt.core.transport;
 using NetMQ;
 using NetMQ.Sockets;
 using System;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
+[assembly: InternalsVisibleTo("heitech.zer0mqXt.core.tests")]
+[assembly: InternalsVisibleTo("zeromq.terminal")]
 namespace heitech.zer0mqXt.core.patterns
 {
-    public sealed class Socket : IDisposable
+    internal sealed class Socket : IDisposable
     {
         private readonly SocketConfiguration _configuration;
-        public Socket(SocketConfiguration configuration)
+        internal Socket(SocketConfiguration configuration)
         {
             _configuration = configuration;
         }

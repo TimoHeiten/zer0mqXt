@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using heitech.zer0mqXt.core.infrastructure;
@@ -6,10 +7,11 @@ using heitech.zer0mqXt.core.transport;
 using NetMQ;
 using NetMQ.Sockets;
 
+[assembly: InternalsVisibleTo("heitech.zer0mqXt.core.tests")]
 namespace heitech.zer0mqXt.core.patterns
 {
     // currently only works correctly for inproc 
-    public class PubSub : IDisposable
+    internal class PubSub : IDisposable
     {
         private readonly SocketConfiguration _configuration;
         public PubSub(SocketConfiguration configuration)
@@ -18,7 +20,7 @@ namespace heitech.zer0mqXt.core.patterns
         }
 
         public async Task<XtResult<TMessage>> PublishAsync<TMessage>(TMessage message)
-            where TMessage : class
+            where TMessage : class, new()
         {
             using var pubSocket = new PublisherSocket();
             pubSocket.Connect(_configuration.Address());
@@ -100,6 +102,7 @@ namespace heitech.zer0mqXt.core.patterns
         }
 
         public async Task SubscribeAsyncHandler<TMessage>(Func<TMessage, Task> asyncCallback)
+            where TMessage : class, new()
         {
             await Task.CompletedTask;
         }

@@ -5,7 +5,7 @@ namespace heitech.zer0mqXt.core.infrastructure
     ///<summary>
     /// Logs to Console only
     ///</summary>
-    public class BasicLogger : ILogger
+    internal class BasicLogger : ILogger
     {
         public int? MaxLogLevel = 3;
         

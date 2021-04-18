@@ -3,7 +3,7 @@ using NetMQ;
 
 namespace heitech.zer0mqXt.core.transport
 {
-    public class RequestReplyMessage<TMessage> : Message<TMessage>
+    internal class RequestReplyMessage<TMessage> : Message<TMessage>
         where TMessage : class
     {
         private readonly bool _isSuccess;
