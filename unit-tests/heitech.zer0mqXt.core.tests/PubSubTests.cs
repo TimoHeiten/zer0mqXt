@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using heitech.zer0mqXt.core.infrastructure;
+using heitech.zer0mqXt.core.patterns;
 using Xunit;
 
 using static heitech.zer0mqXt.core.tests.ConfigurationTestData;
@@ -18,8 +19,8 @@ namespace heitech.zer0mqXt.core.tests
             var message = new Message { ThisIsAPublishedMessageText = "published a message", Array = new [] { 1, 2, 3, 4}};
 
             SocketConfiguration config = new ConfigurationTestData().GetSocketConfigInProc;
-            using var wrapper = CreatePubSub(config);
-            var sut = wrapper.Socket;
+            config.Logger.SetSilent();
+            var sut = new PubSub(config);
 
             sut.SubscribeHandler<Message>(callback: m => incoming = m, unsubscribeWhen: () => unsubscirbeNow);
 
@@ -32,20 +33,21 @@ namespace heitech.zer0mqXt.core.tests
             Assert.NotNull(incoming);
             Assert.Equal(message.Array, incoming.Array);
             Assert.Equal(message.ThisIsAPublishedMessageText, incoming.ThisIsAPublishedMessageText);
+            sut.Dispose();
         }
 
         [Fact]
         public async Task Publish_without_server_throws()
         {
             SocketConfiguration config = new ConfigurationTestData().GetSocketConfigInProc;
-            using var wrapper = CreatePubSub(config);
-            var sut = wrapper.Socket;
+            var sut = new PubSub(config);
 
             // Act
             Func<Task> pub = async () =>  await sut.PublishAsync<Message>(new Message());
 
             // Assert
             await Assert.ThrowsAsync<NetMQ.EndpointNotFoundException>(pub);
+            sut.Dispose();
         }
 
         [Fact]

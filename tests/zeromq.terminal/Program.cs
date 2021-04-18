@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,17 +14,36 @@ namespace zeromq.terminal
     ///</summary>
     class Program
     {
+        static Dictionary<string, Func<SocketConfiguration, Task>> _terminalActions;
+
+        static Program()
+        {
+            _terminalActions = new Dictionary<string, Func<SocketConfiguration, Task>>
+            {
+                ["pubsub"] = RunPubSub,
+                ["reqrep"] = RunReqRep,
+                ["cancel"] = CancellationTokenOnRunningTask
+            };
+        }
         static async Task Main(string[] args)
         {
             var version = args.FirstOrDefault();
-            var configuration = SocketConfiguration.InprocConfig("this-inproc-sir-" + Guid.NewGuid());
+            var configuration = SocketConfiguration.InprocConfig($"this-inproc-sir-{Guid.NewGuid()}");
+            configuration.TimeOut = TimeSpan.FromSeconds(2);
             
-            if (version != null)
-                await RunPubSub(configuration);
+            string key = "reqrep";
+            var actions = args.Where(x => _terminalActions.ContainsKey(x)).Select(x => _terminalActions[x]).ToList();
+            if (actions.Any())
+            {
+                foreach (var action in actions)
+                {
+                    await action(configuration);
+                }
+            }
             else
-                await RunReqRep(configuration);
-
-            NetMQConfig.Cleanup();
+            {
+                await _terminalActions[key](configuration);
+            }
         }
 
         private static async Task RunPubSub(SocketConfiguration configuration)
@@ -33,9 +53,7 @@ namespace zeromq.terminal
             await Task.Run(() => 
             {
                 System.Console.WriteLine("setting up the subscriber");
-                pubSub.SubscribeHandler<Message>(
-                    (m) => System.Console.WriteLine("message came in: " + m.Text)
-                );
+                pubSub.SubscribeHandler<Message>((m) => System.Console.WriteLine("message came in: " + m.Text));
             });
             
             System.Console.WriteLine("now publishes");
@@ -54,6 +72,32 @@ namespace zeromq.terminal
         {
             using var socket = new Socket(configuration);
 
+            SetupResponder(socket);
+
+            System.Console.WriteLine("try request");
+            await RequestAndWriteResultAsync(socket);
+            socket.Dispose();
+        }
+
+        private static async Task CancellationTokenOnRunningTask(SocketConfiguration configuration)
+        {
+            var socket = new Socket(configuration);
+
+            using var cts = new CancellationTokenSource();
+            var token = cts.Token;
+            SetupResponder(socket, token: token);
+            cts.Cancel();
+
+            // the first one will always come threw, no matter what
+            System.Console.WriteLine("try multiple requests");
+            foreach (var item in Enumerable.Range(0, 3))
+            {
+                await RequestAndWriteResultAsync(socket);
+            } 
+        }
+
+        private static void SetupResponder(Socket socket, CancellationToken token = default)
+        {
             socket.Respond<Request, Response>((rq) => 
             {
                 System.Console.WriteLine();
@@ -61,18 +105,20 @@ namespace zeromq.terminal
                 System.Console.WriteLine();
                 var rsp = new Response();
                 rsp.InsideResponse += " " + rq.FromRequest;
-                
-                return rsp;
-            }, respondOnce: true);
 
-            System.Console.WriteLine("try request");
+                return rsp;
+            }, cancellationToken: token);
+        }
+
+        private static async Task RequestAndWriteResultAsync(Socket socket)
+        {
             XtResult<Response> result = await socket.RequestAsync<Request, Response>(new Request());
+            System.Console.WriteLine(result);
+
             if (result.IsSuccess)
                 System.Console.WriteLine("SUCCEESS!! " + result.GetResult().InsideResponse);
             else
                 System.Console.WriteLine("FAILURE!! " + result.Exception);
-
-            socket.Dispose();
         }
 
         private class Request 

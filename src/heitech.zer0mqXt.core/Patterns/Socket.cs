@@ -16,6 +16,7 @@ namespace heitech.zer0mqXt.core.patterns
             _configuration = configuration;
         }
 
+        #region Request / Client
         public async Task<XtResult<TResult>> RequestAsync<T, TResult>(T request)
             where T : class, new()
             where TResult : class, new()
@@ -64,11 +65,14 @@ namespace heitech.zer0mqXt.core.patterns
                 if (!rqDidNotTimeOut)
                     return XtResult<TResult>.Failed(new TimeoutException($"Request<{typeof(T)}, {typeof(TResult)}> timed out"), operation);
 
+                _configuration.Logger.Log(new DebugLogMsg($"successfully sent [Request:{typeof(T)}] and waiting for response [Response:{typeof(TResult)}]"));
                 // wait for the response with timeout
                 var response = new NetMQMessage();
                 bool noTimeOut = rqSocket.TryReceiveMultipartMessage(_configuration.TimeOut, ref response, expectedFrameCount: 3);
                 if (!noTimeOut)
                     return XtResult<TResult>.Failed(new TimeoutException($"Request<{typeof(T)}, {typeof(TResult)}> timed out"), operation);
+                
+                _configuration.Logger.Log(new DebugLogMsg($"received Response [Response:{typeof(TResult)}]"));
 
                 // parse the response and return the result
                 var xtResult = response.ParseRqRepMessage<TResult>(_configuration);
@@ -78,70 +82,118 @@ namespace heitech.zer0mqXt.core.patterns
                         : XtResult<TResult>.Failed(xtResult.Exception, operation);
             });
         }
+        #endregion
 
+
+        #region Response / Server
         private ManualResetEvent eventHandle;
-        private bool runReponder = true;
+
+        private ResponseSocket responseSocket;
+        private NetMQ.NetMQPoller poller;
+        private EventHandler<NetMQSocketEventArgs> receiveHandler;
+        private readonly object concurrencyToken = new object();
+        private bool responderIsSetup = false;
+        private bool respondingIsActive = false;
+
 
         ///<summary>
-        /// Register Callback on the Respond Action at the server, can also register a callback to control how long the server will be running in the background
-        /// <para>Each type and each method call register a single thread for this type according to the configuration</para>
+        /// Register Callback on the Respond Action at the server
         ///</summary>
-        public void Respond<T, TResult>(Func<T, TResult> factory, bool respondOnce = false, CancellationToken cancellationToken = default)
+        public void Respond<T, TResult>(Func<T, TResult> factory, CancellationToken cancellationToken = default)
             where T : class, new()
             where TResult : class
         {
+            lock (concurrencyToken)
+            {
+                if (responderIsSetup)
+                {
+                    throw new ZeroMqXtSocketException("Responder for this instance of Socket exists. Use a new instance for each server");
+                }
+                responderIsSetup = true;
+                respondingIsActive = true;
+
+            }
+
+            poller = new NetMQ.NetMQPoller();
+            responseSocket = new ResponseSocket();
             // handle notifies when the server is set up
             eventHandle = new ManualResetEvent(false);
             // create a new background thread with the response callback
+            
             Task.Run(() => 
             {
                 try
                 {
-                    using var rsSocket = new ResponseSocket();
-                    rsSocket.Bind(_configuration.Address());
+                    responseSocket.Bind(_configuration.Address());
 
-                    // open resetevent after binding to the socket, and block after that
+                    // add to poller and register handler
+                    poller.Add(responseSocket);
+                    receiveHandler = (s, e) => ResponseHandlerCallback(responseSocket, factory, cancellationToken);
+                    responseSocket.ReceiveReady += receiveHandler;
+
+                    // poller blocks, so it has to be started after the eventhandle is set
+                    poller.RunAsync();
+                    
+                    // open resetevent after binding to the socket and when the poller is started
                     eventHandle.Set();
-
-                    while (runReponder)
-                    {
-                        Message<TResult> response = null;
-                        try
-                        {
-                            // block on this thread for incoming requests of the Type
-                            NetMQMessage incomingRequest = rsSocket.ReceiveMultipartMessage();
-                            _configuration.Logger.Log(new DebugLogMsg($"handling response for [Request:{typeof(T)}] and [Response:{typeof(TResult)}]"));
-
-                            var actualRequestResult = incomingRequest.ParseRqRepMessage<T>(_configuration);
-                            TResult result = factory(actualRequestResult.IsSuccess ? actualRequestResult.GetResult() : new T());
-
-                            response = new RequestReplyMessage<TResult>(_configuration, result, actualRequestResult.IsSuccess);
-
-                        }
-                        catch (System.Exception ex)
-                        {
-                            // failure to parse or any other exception leads to a non successful response, which then in turn can be handled on the request side
-                            _configuration.Logger.Log(new ErrorLogMsg($"Responding to [Request:{typeof(T)}] with [Response:{typeof(TResult)}] did fail: " + ex.Message));
-                            response = new RequestReplyMessage<TResult>(_configuration, default(TResult), success: false);
-                        }
-
-                        // try send response with timeout
-                        bool noTimeout = rsSocket.TrySendMultipartMessage(_configuration.TimeOut, response);
-                        if (!noTimeout)
-                            _configuration.Logger.Log(new ErrorLogMsg($"Responding to [Request:{typeof(T)}] with [Response:{typeof(TResult)}] timed-out after {_configuration.TimeOut}"));
-
-                        if (respondOnce || cancellationToken.IsCancellationRequested)
-                            runReponder = false;
-                    }
                 }
-                catch (NetMQ.TerminatingException terminating)
+                catch (Exception exception)
                 {
-                    _configuration.Logger.Log(new ErrorLogMsg(terminating.Message));
+                    _configuration.Logger.Log(new ErrorLogMsg(exception.Message));
+                    Dispose();
                 }
-            }, cancellationToken == default ? CancellationToken.None : cancellationToken);
-            // wait for the Set inside the background thread
+            }, cancellationToken);
+
+            // wait for the Set inside the background thread so we can know at the calling client that the server is set up properly
             eventHandle.WaitOne();
         }
+
+
+        private void ResponseHandlerCallback<T, TResult>(ResponseSocket socket, Func<T, TResult> factory, CancellationToken token)
+            where T : class, new()
+            where TResult : class
+        {
+            if (!respondingIsActive || token.IsCancellationRequested)
+            {
+                Dispose();
+                _configuration.Logger.Log(new InfoLogMsg("Task was cancelled by cancellationRequest"));
+                return;
+            }
+
+            try
+            {
+                Message<TResult> response = null;
+                try
+                {
+                    // block on this thread for incoming requests of the type T (Request)
+                    NetMQMessage incomingRequest = socket.ReceiveMultipartMessage();
+                    _configuration.Logger.Log(new DebugLogMsg($"handling response for [Request:{typeof(T)}] and [Response:{typeof(TResult)}]"));
+
+                    var actualRequestResult = incomingRequest.ParseRqRepMessage<T>(_configuration);
+                    TResult result = factory(actualRequestResult.IsSuccess ? actualRequestResult.GetResult() : new T());
+
+                    response = new RequestReplyMessage<TResult>(_configuration, result, actualRequestResult.IsSuccess);
+                    _configuration.Logger.Log(new DebugLogMsg($"sending response for [Request:{typeof(T)}] and [Response:{typeof(TResult)}]"));
+                }
+                catch (System.Exception ex)
+                {
+                    // failure to parse or any other exception leads to a non successful response, which then in turn can be handled on the request side
+                    _configuration.Logger.Log(new ErrorLogMsg($"Responding to [Request:{typeof(T)}] with [Response:{typeof(TResult)}] did fail: " + ex.Message));
+                    response = new RequestReplyMessage<TResult>(_configuration, default(TResult), success: false);
+                }
+
+                // try send response with timeout
+                bool noTimeout = socket.TrySendMultipartMessage(_configuration.TimeOut, response);
+                if (!noTimeout)
+                    _configuration.Logger.Log(new ErrorLogMsg($"Responding to [Request:{typeof(T)}] with [Response:{typeof(TResult)}] timed-out after {_configuration.TimeOut}"));
+            }
+            catch (NetMQ.TerminatingException terminating)
+            {
+                _configuration.Logger.Log(new ErrorLogMsg($"repsonseHandler failed with terminating exception: [{terminating.Message}]"));
+                Dispose();
+            }
+        }
+        #endregion
 
         #region Dispose
         private bool disposedValue;
@@ -152,7 +204,10 @@ namespace heitech.zer0mqXt.core.patterns
             {
                 if (disposing)
                 {
-                    runReponder = false;
+                    respondingIsActive = false;
+                    poller?.Stop();
+                    if (responseSocket != null && receiveHandler != null)
+                        responseSocket.ReceiveReady -= receiveHandler;
                 }
                 disposedValue = true;
             }

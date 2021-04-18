@@ -30,19 +30,21 @@ PubSub
 misc
     load test with 10 K Messages / s
 
+DI
+    LiteInjector
+    SimpleInjector
+    or similar for LoggingAdapter, SerializationAdapter and future uses
 
 extra projects for each serializer package
     a la
     heitech.zeroMqXt.Serializing.Utf8json
     heitech.zeroMqXt.Serializing.Newtonsoftjson
 
-
 integrate netmq users 
     derive socket from their netmqsocket with extension methods
 
-
 Todo Failure scenarios
-    check what happens if more than one server is setup with the same type for Rq/Rep
+    check what happens if more than one server is setup with the same type for Rq/Rep --> needs Router / Dealer pattern to be non blocking
 
 others:
     transport.Message: todo rather use fullyqualifed name (assembly)
@@ -53,3 +55,18 @@ unit-Tests
      // todo cancel server, stops response
     // todo multiple servers for same type (Contestion?)
     // todo change to be able to use task (for now it needs parameterless ctor so it can be newed, which task obv does not support)
+
+other:
+    Cleanup determinstic?
+    PUB SUB TCP
+    ROUTER DEALER Socket pattern
+
+    async responder
+
+
+
+setup 2 instances responders on single socket throws --> tests
+test for cancellationToken
+
+Implement BUS for all Kinds of Patterns (so the bus creates new instances in and of itself)
+multpile server on same ip / tcp address
