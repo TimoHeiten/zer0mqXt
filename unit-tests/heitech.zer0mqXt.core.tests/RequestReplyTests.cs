@@ -5,19 +5,11 @@ using System.Threading.Tasks;
 using heitech.zer0mqXt.core.infrastructure;
 using heitech.zer0mqXt.core.patterns;
 using Xunit;
-using Xunit.Abstractions;
-using static heitech.zer0mqXt.core.tests.ConfigurationTestData;
 
 namespace heitech.zer0mqXt.core.tests
 {
     public class RequestReplyTests : IDisposable
     {
-
-        private readonly ITestOutputHelper output;
-        public RequestReplyTests(ITestOutputHelper output)
-        {
-            this.output = output;
-        }
 
         [Fact]
         public async Task SimpleRequestAndReply_InProc()
@@ -139,7 +131,6 @@ namespace heitech.zer0mqXt.core.tests
             var result = await sut.RequestAsync<Request, Response>(new Request { RequestNumber = 2 });
 
             // Assert
-            output.WriteLine(result.Exception?.Message ?? "no exception");
             Assert.True(result.IsSuccess);
         }
 
