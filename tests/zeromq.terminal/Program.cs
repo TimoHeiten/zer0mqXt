@@ -72,18 +72,18 @@ namespace zeromq.terminal
 
         private static async Task RunReqRep(SocketConfiguration configuration)
         {
-            using var socket = new Socket(configuration);
+            using var rqRep = new RqRep(configuration);
 
-            SetupResponder(socket);
+            SetupResponder(rqRep);
 
             System.Console.WriteLine("try request");
-            await RequestAndWriteResultAsync(socket);
-            socket.Dispose();
+            await RequestAndWriteResultAsync(rqRep);
+            rqRep.Dispose();
         }
 
         private static async Task CancellationTokenOnRunningTask(SocketConfiguration configuration)
         {
-            var socket = new Socket(configuration);
+            var socket = new RqRep(configuration);
 
             using var cts = new CancellationTokenSource();
             var token = cts.Token;
@@ -98,9 +98,9 @@ namespace zeromq.terminal
             } 
         }
 
-        private static void SetupResponder(Socket socket, CancellationToken token = default)
+        private static void SetupResponder(RqRep rqRep, CancellationToken token = default)
         {
-            socket.Respond<Request, Response>((rq) => 
+            rqRep.Respond<Request, Response>((rq) => 
             {
                 System.Console.WriteLine();
                 System.Console.WriteLine("now calling the factory");
@@ -112,9 +112,9 @@ namespace zeromq.terminal
             }, cancellationToken: token);
         }
 
-        private static async Task RequestAndWriteResultAsync(Socket socket)
+        private static async Task RequestAndWriteResultAsync(RqRep rqRep)
         {
-            XtResult<Response> result = await socket.RequestAsync<Request, Response>(new Request());
+            XtResult<Response> result = await rqRep.RequestAsync<Request, Response>(new Request());
             System.Console.WriteLine(result);
 
             if (result.IsSuccess)

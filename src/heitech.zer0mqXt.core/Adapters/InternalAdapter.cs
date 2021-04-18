@@ -10,11 +10,11 @@ namespace heitech.zer0mqXt.core.Adapters
     {
         public Encoding Encoding { get; } = Encoding.UTF8;
         private readonly Serializer _serializer;
-        private readonly BasicLogger logger;
+        private readonly BasicLogger _logger;
 
         public InternalAdapters()
         {
-            logger = new BasicLogger();
+            _logger = new BasicLogger();
             _serializer = Serializer.UseNewtonsoft(Encoding);
         }
 

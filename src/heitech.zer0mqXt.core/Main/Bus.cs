@@ -8,17 +8,17 @@ namespace heitech.zer0mqXt.core.Main
 {
     internal class Bus : IEntry
     {
-        private readonly Socket _socket;
+        private readonly RqRep _rqRep;
         private readonly PubSub _pubSub;
         public Bus(SocketConfiguration config) 
         {
-            _socket = new Socket(config);
+            _rqRep = new RqRep(config);
             _pubSub = new PubSub(config);
         }
 
         public void Dispose()
         {
-            _socket.Dispose();
+            _rqRep.Dispose();
             _pubSub.Dispose();
         }
 
@@ -48,7 +48,7 @@ namespace heitech.zer0mqXt.core.Main
             where TRequest : class, new()
             where TResult : class, new()
         {
-            var xtResult = await _socket.RequestAsync<TRequest, TResult>(request);
+            var xtResult = await _rqRep.RequestAsync<TRequest, TResult>(request);
             if (xtResult.IsSuccess == false)
                 throw ZeroMqXtSocketException.FromException(xtResult.Exception);
 
@@ -59,7 +59,7 @@ namespace heitech.zer0mqXt.core.Main
             where TRequest : class, new()
             where TResult : class, new()
         {
-            _socket.Respond<TRequest, TResult>(callback, cancellationToken);
+            _rqRep.Respond<TRequest, TResult>(callback, cancellationToken);
         }
 
         public void RespondAsync<TRequest, TResult>(Func<TRequest, Task<TResult>> callback, CancellationToken cancellationToken = default)

@@ -16,7 +16,7 @@ namespace heitech.zer0mqXt.core.tests
         public async Task SimpleRequestAndReply_InProc()
         {
             // Arrange
-            var sut = new Socket(new ConfigurationTestData().GetSocketConfigInProc);
+            var sut = new RqRep(new ConfigurationTestData().GetSocketConfigInProc);
             sut.Respond<Request, Response>(rq => new Response { ResponseNumber = rq.RequestNumber });
 
             // Act
@@ -33,7 +33,7 @@ namespace heitech.zer0mqXt.core.tests
         public async Task SimpleRequestAndReply_Fails_when_factory_throws_Exception_But_still_gets_an_answer(object configuration)
         {
             // Arrange
-            var sut = new Socket((SocketConfiguration)configuration);
+            var sut = new RqRep((SocketConfiguration)configuration);
             sut.Respond<Request, Response>(rq => throw new TimeoutException());
 
             // Act
@@ -50,7 +50,7 @@ namespace heitech.zer0mqXt.core.tests
         public async Task Multiple_Threads_Send_To_One_Responder_Works(object configuration)
         {
             // Arrange
-            var sut = new Socket((SocketConfiguration)configuration);
+            var sut = new RqRep((SocketConfiguration)configuration);
             sut.Respond<Request, Response>(rq => new Response { ResponseNumber = rq.RequestNumber });
             var input_output_Tuples = new List<(int, int)>();
             var taskList = new List<Task>()
@@ -70,7 +70,7 @@ namespace heitech.zer0mqXt.core.tests
             sut.Dispose();
         }
 
-        private async Task DoMultipleRequestAsync(Socket sut, int input, List<(int, int)> input_output_Tuples)
+        private async Task DoMultipleRequestAsync(RqRep sut, int input, List<(int, int)> input_output_Tuples)
         {
             var result = await sut.RequestAsync<Request, Response>(new Request { RequestNumber = input });
             Assert.True(result.IsSuccess);
@@ -84,7 +84,7 @@ namespace heitech.zer0mqXt.core.tests
             // Arrange
             var config = (SocketConfiguration)configuration;
             config.TimeOut = TimeSpan.FromMilliseconds(50);
-            var sut = new Socket(config);
+            var sut = new RqRep(config);
             // no server this time around
 
             // Act
@@ -102,7 +102,7 @@ namespace heitech.zer0mqXt.core.tests
             // Arrange
             var config = (SocketConfiguration)configuration;
             config.TimeOut = TimeSpan.FromSeconds(1);
-            var sut = new Socket(config);
+            var sut = new RqRep(config);
             sut.Respond<Request, Response>(rq =>
             {
                 // is a timeout
@@ -127,7 +127,7 @@ namespace heitech.zer0mqXt.core.tests
             // fails
             // Arrange
             var ipc = new ConfigurationTestData().GetSocketConfigInProc;
-            var sut = new Socket(ipc);
+            var sut = new RqRep(ipc);
             sut.Respond<Request, Task<Response>>(r =>
             {
                 return Task.FromResult(new Response { ResponseNumber = (int)Math.Pow(r.RequestNumber, r.RequestNumber) });

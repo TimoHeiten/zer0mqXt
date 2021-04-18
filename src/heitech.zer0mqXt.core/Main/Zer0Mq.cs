@@ -13,6 +13,18 @@ namespace heitech.zer0mqXt.core.Main
             _serializer = new InternalAdapters();
         }
 
+        public IZer0MqBuilder SetSerializer(ISerializerAdapter adapter)
+        {
+            _serializer = adapter;
+            return this;
+        }
+
+        public IZer0MqBuilder SetLogger(ILogger adapter)
+        {
+            _logger = adapter;
+            return this;
+        }
+
         public static IZer0MqBuilder Go() => new Zer0Mq();
 
         public IEntry BuildWithInProc(string pipeName)
