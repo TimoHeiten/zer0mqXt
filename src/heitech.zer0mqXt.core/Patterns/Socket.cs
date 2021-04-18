@@ -65,7 +65,7 @@ namespace heitech.zer0mqXt.core.patterns
                 if (!rqDidNotTimeOut)
                     return XtResult<TResult>.Failed(new TimeoutException($"Request<{typeof(T)}, {typeof(TResult)}> timed out"), operation);
 
-                _configuration.Logger.Log(new DebugLogMsg($"successuflly sent [Request:{typeof(T)}] and waiting for response [Response:{typeof(TResult)}]"));
+                _configuration.Logger.Log(new DebugLogMsg($"successfully sent [Request:{typeof(T)}] and waiting for response [Response:{typeof(TResult)}]"));
                 // wait for the response with timeout
                 var response = new NetMQMessage();
                 bool noTimeOut = rqSocket.TryReceiveMultipartMessage(_configuration.TimeOut, ref response, expectedFrameCount: 3);
@@ -91,7 +91,7 @@ namespace heitech.zer0mqXt.core.patterns
         private ResponseSocket responseSocket;
         private NetMQ.NetMQPoller poller;
         private EventHandler<NetMQSocketEventArgs> receiveHandler;
-        private object concurrencyToken = new object();
+        private readonly object concurrencyToken = new object();
         private bool responderIsSetup = false;
         private bool respondingIsActive = false;
 
@@ -153,19 +153,19 @@ namespace heitech.zer0mqXt.core.patterns
             where T : class, new()
             where TResult : class
         {
+            if (!respondingIsActive || token.IsCancellationRequested)
+            {
+                Dispose();
+                _configuration.Logger.Log(new InfoLogMsg("Task was cancelled by cancellationRequest"));
+                return;
+            }
+
             try
             {
-                if (!respondingIsActive || token.IsCancellationRequested)
-                {
-                    Dispose();
-                    _configuration.Logger.Log(new InfoLogMsg("Task was cancelled by cancellationRequest"));
-                    return;
-                }
-
                 Message<TResult> response = null;
                 try
                 {
-                    // block on this thread for incoming requests of the Type
+                    // block on this thread for incoming requests of the type T (Request)
                     NetMQMessage incomingRequest = socket.ReceiveMultipartMessage();
                     _configuration.Logger.Log(new DebugLogMsg($"handling response for [Request:{typeof(T)}] and [Response:{typeof(TResult)}]"));
 

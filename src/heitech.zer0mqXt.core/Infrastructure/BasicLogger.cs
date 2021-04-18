@@ -7,11 +7,14 @@ namespace heitech.zer0mqXt.core.infrastructure
     ///</summary>
     public class BasicLogger : ILogger
     {
-        public int MaxLogLevel = 3;
+        public int? MaxLogLevel = 3;
         
 
         public void Log(LogMessage message)
         {
+            if (MaxLogLevel is null)
+                return;
+
             if (message.LogLevel > MaxLogLevel)
                 return;
 
@@ -40,7 +43,7 @@ namespace heitech.zer0mqXt.core.infrastructure
 
         public void SetSilent()
         {
-            MaxLogLevel = -100;
+            MaxLogLevel = null;
         }
 
         private class ConsoleColoring : IDisposable
