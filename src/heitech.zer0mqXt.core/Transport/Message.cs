@@ -10,12 +10,7 @@ namespace heitech.zer0mqXt.core.transport
         protected Serializer _serializer;
         protected SocketConfiguration _configuration;
         protected byte[] TypeFrame => _serializer.Serialize(typeof(TMessage).TypeFrameName());
-        private byte[] payload;
-        protected byte[] Payload
-        {
-            get => payload;
-            set => payload = value;
-        } 
+        protected byte[] Payload { get; private set;}
         public TMessage Content { get; private set; }
 
         private protected Message(SocketConfiguration configuration, TMessage message)
@@ -105,9 +100,9 @@ namespace heitech.zer0mqXt.core.transport
             if (!isSuccess)
             {
                 var exceptnText = configuration.Serializer.Deserialize<string>(payloadFrame);
-                var excptn = new ZeroMqXtSocketException("Server failed with" +  exceptnText);
-                configuration.Logger.Log(new DebugLogMsg(excptn.Message));
-                return XtResult<TMessage>.Failed(excptn, operation);
+                var excption = new ZeroMqXtSocketException("Server failed with" +  exceptnText);
+                configuration.Logger.Log(new DebugLogMsg(excption.Message));
+                return XtResult<TMessage>.Failed(excption, operation);
             }
             #endregion
 

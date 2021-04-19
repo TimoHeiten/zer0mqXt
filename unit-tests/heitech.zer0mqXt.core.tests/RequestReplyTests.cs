@@ -153,7 +153,8 @@ namespace heitech.zer0mqXt.core.tests
 
             // Assert
             Assert.False(result.IsSuccess);
-            Assert.Contains("ArgumentException", result.Exception?.Message ?? "");
+            Assert.NotNull(result.Exception);
+            Assert.Contains("ArgumentException", result.Exception.Message);
             Assert.StartsWith("Server failed with" + Environment.NewLine + "ArgumentException", result.Exception.Message);
         }
 
