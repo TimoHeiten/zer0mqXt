@@ -1,15 +1,15 @@
 using System;
 using System.Text;
-using NetMQ;
+using heitech.zer0mqXt.core.Adapters;
 
 namespace heitech.zer0mqXt.core.infrastructure
 {
-    public abstract class SocketConfiguration
+    internal abstract class SocketConfiguration
     {
         ///<summary>
         /// Uses Newtonsoft by default. But you can also use Utf8Json or supply your own serialization
         ///</summary>
-        public Serializer Serializer { get; set; }
+        public ISerializerAdapter Serializer { get; set; }
         internal abstract string Address();
         ///<summary>
         /// Uses the BasicLogger implementation by default which only Logs to the console
@@ -19,9 +19,11 @@ namespace heitech.zer0mqXt.core.infrastructure
         private protected SocketConfiguration()
         {
             Logger = new BasicLogger();
-            Encoding = Encoding.UTF8;
+
+            var adapter = new InternalAdapter();
+            Serializer = adapter;
+            Encoding = adapter.Encoding;
             TimeOut = TimeSpan.FromSeconds(5);
-            Serializer = Serializer.UseNewtonsoft(Encoding);
         }
 
         ///<summary>
