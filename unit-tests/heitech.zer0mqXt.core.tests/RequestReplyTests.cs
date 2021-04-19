@@ -6,8 +6,6 @@ using heitech.zer0mqXt.core.infrastructure;
 using heitech.zer0mqXt.core.patterns;
 using Xunit;
 
-using static heitech.zer0mqXt.core.tests.ConfigurationTestData;
-
 namespace heitech.zer0mqXt.core.tests
 {
     public class RequestReplyTests : IDisposable

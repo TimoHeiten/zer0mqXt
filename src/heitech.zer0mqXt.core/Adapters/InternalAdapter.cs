@@ -6,15 +6,13 @@ namespace heitech.zer0mqXt.core.Adapters
     ///<summary>
     /// Uses the default implementations of all services
     ///</summary>
-    public class InternalAdapters : ISerializerAdapter
+    internal class InternalAdapter : ISerializerAdapter
     {
         public Encoding Encoding { get; } = Encoding.UTF8;
         private readonly Serializer _serializer;
-        private readonly BasicLogger _logger;
 
-        public InternalAdapters()
+        internal InternalAdapter()
         {
-            _logger = new BasicLogger();
             _serializer = Serializer.UseNewtonsoft(Encoding);
         }
 

@@ -1,10 +1,7 @@
 using System;
-using System.Runtime.CompilerServices;
 using System.Text;
 using heitech.zer0mqXt.core.Adapters;
 
-[assembly: InternalsVisibleTo("heitech.zer0mqXt.core.tests")]
-[assembly: InternalsVisibleTo("zeromq.terminal")]
 namespace heitech.zer0mqXt.core.infrastructure
 {
     internal abstract class SocketConfiguration
@@ -23,7 +20,7 @@ namespace heitech.zer0mqXt.core.infrastructure
         {
             Logger = new BasicLogger();
 
-            var adapter = new InternalAdapters();
+            var adapter = new InternalAdapter();
             Serializer = adapter;
             Encoding = adapter.Encoding;
             TimeOut = TimeSpan.FromSeconds(5);

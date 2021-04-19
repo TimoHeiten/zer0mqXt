@@ -1,5 +1,4 @@
 using System;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using heitech.zer0mqXt.core.infrastructure;
@@ -7,7 +6,6 @@ using heitech.zer0mqXt.core.transport;
 using NetMQ;
 using NetMQ.Sockets;
 
-[assembly: InternalsVisibleTo("heitech.zer0mqXt.core.tests")]
 namespace heitech.zer0mqXt.core.patterns
 {
     // currently only works correctly for inproc 

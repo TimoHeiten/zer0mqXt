@@ -10,7 +10,7 @@ namespace heitech.zer0mqXt.core.Main
         private Zer0Mq()
         {
             _logger = new BasicLogger();
-            _serializer = new InternalAdapters();
+            _serializer = new InternalAdapter();
         }
 
         public IZer0MqBuilder SetSerializer(ISerializerAdapter adapter)
