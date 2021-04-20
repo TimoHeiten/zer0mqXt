@@ -13,7 +13,7 @@ namespace heitech.zer0mqXt.core
         IZer0MqBuilder SetLogger(ILogger adapter);
         IZer0MqBuilder SetSerializer(ISerializerAdapter adapter);
 
-        IEntry BuildWithTcp(string host, string port);
-        IEntry BuildWithInProc(string pipeName);
+        ISocket BuildWithTcp(string host, string port);
+        ISocket BuildWithInProc(string pipeName);
     }
 }

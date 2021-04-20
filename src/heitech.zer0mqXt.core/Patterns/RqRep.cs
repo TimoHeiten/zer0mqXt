@@ -87,7 +87,6 @@ namespace heitech.zer0mqXt.core.patterns
 
         #region Response / Server
         private ManualResetEvent eventHandle;
-
         private ResponseSocket responseSocket;
         private NetMQ.NetMQPoller poller;
         private EventHandler<NetMQSocketEventArgs> receiveHandler;
@@ -95,11 +94,32 @@ namespace heitech.zer0mqXt.core.patterns
         private bool responderIsSetup = false;
         private bool respondingIsActive = false;
 
+        ///<summary>
+        /// Register async Callback on the Respond Action at the server
+        ///</summary>
+        public void RespondAsync<T, TResult>(Func<T, Task<TResult>> factory, CancellationToken cancellationToken = default)
+            where T : class, new()
+            where TResult : class
+        {
+            var responseHandler = ResponseHandler<T, TResult>.ASync(factory);
+            SetupResponder(responseHandler, cancellationToken);
+        }
 
         ///<summary>
-        /// Register Callback on the Respond Action at the server
+        /// Register sync Callback on the Respond Action at the server
         ///</summary>
         public void Respond<T, TResult>(Func<T, TResult> factory, CancellationToken cancellationToken = default)
+            where T : class, new()
+            where TResult : class
+        {
+            var responseHandler = ResponseHandler<T, TResult>.Sync(factory);
+            SetupResponder(responseHandler, cancellationToken);
+        }
+
+        ///<summary>
+        /// necessary indirection for the responsehandler to be used in sync or async fashion
+        ///</summary>
+        private void SetupResponder<T, TResult>(ResponseHandler<T, TResult> handler, CancellationToken token)
             where T : class, new()
             where TResult : class
         {
@@ -128,28 +148,65 @@ namespace heitech.zer0mqXt.core.patterns
 
                     // add to poller and register handler
                     poller.Add(responseSocket);
-                    receiveHandler = (s, e) => ResponseHandlerCallback(responseSocket, factory, cancellationToken);
+                    receiveHandler = async (s, e) => await ResponseHandlerCallback(responseSocket, handler, token);
                     responseSocket.ReceiveReady += receiveHandler;
 
                     // poller blocks, so it has to be started after the eventhandle is set
                     poller.RunAsync();
                     
-                    // open resetevent after binding to the socket and when the poller is started
-                    eventHandle.Set();
                 }
                 catch (Exception exception)
                 {
                     _configuration.Logger.Log(new ErrorLogMsg(exception.Message));
                     Dispose();
                 }
-            }, cancellationToken);
+                finally
+                {
+                    // open resetevent after binding to the socket and when the poller is started
+                    eventHandle.Set();
+                }
+            }, token);
 
             // wait for the Set inside the background thread so we can know at the calling client that the server is set up properly
             eventHandle.WaitOne();
         }
 
+        ///<summary>
+        /// indirection for Response handling either asynchronous or synchronous
+        ///</summary>
+        private class ResponseHandler<T, TResult>
+            where T : class, new()
+            where TResult : class
+        {
+            private readonly Func<T, TResult> syncCallback;
+            private readonly Func<T, Task<TResult>> asyncCallback;
 
-        private void ResponseHandlerCallback<T, TResult>(ResponseSocket socket, Func<T, TResult> factory, CancellationToken token)
+            private ResponseHandler(Func<T, TResult> syncCallback=null, Func<T, Task<TResult>> asyncCallback=null)
+            {
+                this.syncCallback = syncCallback;
+                this.asyncCallback = asyncCallback;
+            }
+
+            internal static ResponseHandler<T, TResult> Sync(Func<T, TResult> syncCallback) 
+                => new ResponseHandler<T, TResult>(syncCallback: syncCallback);
+
+            internal static ResponseHandler<T, TResult> ASync(Func<T, Task<TResult>> asyncCallback) 
+                => new ResponseHandler<T, TResult>(asyncCallback: asyncCallback);
+
+            public async Task<TResult> HandleAsync(XtResult<T> incomingRequest)
+            {
+                T request = incomingRequest.IsSuccess ? incomingRequest.GetResult() : new T();
+                if (asyncCallback is null)
+                    return syncCallback(request);
+                else
+                    return await asyncCallback(request);
+            }
+        }
+
+        ///<summary>
+        /// actual response handling including the response handler wrapper for sync or async callback
+        ///</summary>
+        private async Task ResponseHandlerCallback<T, TResult>(ResponseSocket socket, ResponseHandler<T, TResult> handler, CancellationToken token)
             where T : class, new()
             where TResult : class
         {
@@ -170,7 +227,7 @@ namespace heitech.zer0mqXt.core.patterns
                     _configuration.Logger.Log(new DebugLogMsg($"handling response for [Request:{typeof(T)}] and [Response:{typeof(TResult)}]"));
 
                     var actualRequestResult = incomingRequest.ParseRqRepMessage<T>(_configuration);
-                    TResult result = factory(actualRequestResult.IsSuccess ? actualRequestResult.GetResult() : new T());
+                    TResult result = await handler.HandleAsync(actualRequestResult);
 
                     response = new RequestReplyMessage<TResult>(_configuration, result, actualRequestResult.IsSuccess);
                     _configuration.Logger.Log(new DebugLogMsg($"sending response for [Request:{typeof(T)}] and [Response:{typeof(TResult)}]"));

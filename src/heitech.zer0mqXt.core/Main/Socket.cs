@@ -6,11 +6,11 @@ using heitech.zer0mqXt.core.patterns;
 
 namespace heitech.zer0mqXt.core.Main
 {
-    internal class Bus : IEntry
+    internal class Socket : ISocket
     {
         private readonly RqRep _rqRep;
         private readonly PubSub _pubSub;
-        public Bus(SocketConfiguration config) 
+        public Socket(SocketConfiguration config) 
         {
             _rqRep = new RqRep(config);
             _pubSub = new PubSub(config);

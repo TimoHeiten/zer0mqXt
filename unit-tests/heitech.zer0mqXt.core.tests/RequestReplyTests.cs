@@ -10,6 +10,7 @@ namespace heitech.zer0mqXt.core.tests
 {
     public class RequestReplyTests : IDisposable
     {
+
         [Fact]
         public async Task SimpleRequestAndReply_InProc()
         {
@@ -120,13 +121,10 @@ namespace heitech.zer0mqXt.core.tests
         [Fact]
         public async Task AsyncRqRep()
         {
-            // todo change to be able to use task (for now it needs parameterless ctor so it can be newed, which task obv does not support)
-            return;
-            // fails
             // Arrange
             var ipc = new ConfigurationTestData().GetSocketConfigInProc;
             var sut = new RqRep(ipc);
-            sut.Respond<Request, Task<Response>>(r =>
+            sut.RespondAsync<Request, Response>(r =>
             {
                 return Task.FromResult(new Response { ResponseNumber = (int)Math.Pow(r.RequestNumber, r.RequestNumber) });
             });
