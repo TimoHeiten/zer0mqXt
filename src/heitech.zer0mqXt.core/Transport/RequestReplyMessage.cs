@@ -15,6 +15,17 @@ namespace heitech.zer0mqXt.core.transport
             _isSuccess = success;
         }
 
+        private RequestReplyMessage(SocketConfiguration configuration, string message)
+            : base(configuration, errorMsg: message)
+        {
+            _isSuccess = false;
+        }
+
+        internal static RequestReplyMessage<TMessage> FromError(SocketConfiguration configuration, string error)
+        {
+            return new RequestReplyMessage<TMessage>(configuration, error);
+        }
+
         protected internal override NetMQMessage ToNetMqMessage()
         {
             var msg = new NetMQMessage();
