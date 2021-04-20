@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace heitech.zer0mqXt.core
 {
-    public interface IEntry : IDisposable
+    public interface ISocket : IDisposable
     { 
         Task<TResult> RequestAsync<TRequest, TResult>(TRequest request)
             where TRequest : class, new()

@@ -154,13 +154,16 @@ namespace heitech.zer0mqXt.core.patterns
                     // poller blocks, so it has to be started after the eventhandle is set
                     poller.RunAsync();
                     
-                    // open resetevent after binding to the socket and when the poller is started
-                    eventHandle.Set();
                 }
                 catch (Exception exception)
                 {
                     _configuration.Logger.Log(new ErrorLogMsg(exception.Message));
                     Dispose();
+                }
+                finally
+                {
+                    // open resetevent after binding to the socket and when the poller is started
+                    eventHandle.Set();
                 }
             }, token);
 

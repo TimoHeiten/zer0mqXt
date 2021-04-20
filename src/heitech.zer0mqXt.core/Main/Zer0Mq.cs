@@ -27,18 +27,18 @@ namespace heitech.zer0mqXt.core.Main
 
         public static IZer0MqBuilder Go() => new Zer0Mq();
 
-        public IEntry BuildWithInProc(string pipeName)
+        public ISocket BuildWithInProc(string pipeName)
             => Build(new SocketConfiguration.Inproc(pipeName));
 
-        public IEntry BuildWithTcp(string host, string port)
+        public ISocket BuildWithTcp(string host, string port)
             => Build(new SocketConfiguration.Tcp(port:port, host:host));
 
-        private IEntry Build(SocketConfiguration configuration)
+        private ISocket Build(SocketConfiguration configuration)
         {
             configuration.Serializer = _serializer;
             configuration.Logger = _logger;
 
-            return new Bus(configuration);
+            return new Socket(configuration);
         }
     }
 }
