@@ -142,7 +142,7 @@ namespace heitech.zer0mqXt.core.tests
         public async Task Exception_propagation_when_server_response_Throws_to_Requester()
         {
              var ipc = new ConfigurationTestData().GetSocketConfigInProc;
-            var sut = new Socket(ipc);
+            var sut = new RqRep(ipc);
             sut.Respond<Request, Response>(r =>
             {
                 throw new ArgumentException("this is a unit test proving the exception propagation works");
