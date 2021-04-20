@@ -8,10 +8,10 @@ using System.Threading.Tasks;
 
 namespace heitech.zer0mqXt.core.patterns
 {
-    public sealed class Socket : IDisposable
+    internal sealed class RqRep : IDisposable
     {
         private readonly SocketConfiguration _configuration;
-        public Socket(SocketConfiguration configuration)
+        internal RqRep(SocketConfiguration configuration)
         {
             _configuration = configuration;
         }

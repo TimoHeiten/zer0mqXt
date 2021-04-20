@@ -4,8 +4,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using heitech.zer0mqXt.core.infrastructure;
+using heitech.zer0mqXt.core.Main;
 using heitech.zer0mqXt.core.patterns;
-using NetMQ;
 
 namespace zeromq.terminal
 {
@@ -22,9 +22,11 @@ namespace zeromq.terminal
             {
                 ["pubsub"] = RunPubSub,
                 ["reqrep"] = RunReqRep,
-                ["cancel"] = CancellationTokenOnRunningTask
+                ["cancel"] = CancellationTokenOnRunningTask,
+                ["bus-all"] = UseBusInterface
             };
         }
+
         static async Task Main(string[] args)
         {
             var version = args.FirstOrDefault();
@@ -70,18 +72,18 @@ namespace zeromq.terminal
 
         private static async Task RunReqRep(SocketConfiguration configuration)
         {
-            using var socket = new Socket(configuration);
+            using var rqRep = new RqRep(configuration);
 
-            SetupResponder(socket);
+            SetupResponder(rqRep);
 
             System.Console.WriteLine("try request");
-            await RequestAndWriteResultAsync(socket);
-            socket.Dispose();
+            await RequestAndWriteResultAsync(rqRep);
+            rqRep.Dispose();
         }
 
         private static async Task CancellationTokenOnRunningTask(SocketConfiguration configuration)
         {
-            var socket = new Socket(configuration);
+            var socket = new RqRep(configuration);
 
             using var cts = new CancellationTokenSource();
             var token = cts.Token;
@@ -96,9 +98,9 @@ namespace zeromq.terminal
             } 
         }
 
-        private static void SetupResponder(Socket socket, CancellationToken token = default)
+        private static void SetupResponder(RqRep rqRep, CancellationToken token = default)
         {
-            socket.Respond<Request, Response>((rq) => 
+            rqRep.Respond<Request, Response>((rq) => 
             {
                 System.Console.WriteLine();
                 System.Console.WriteLine("now calling the factory");
@@ -110,15 +112,27 @@ namespace zeromq.terminal
             }, cancellationToken: token);
         }
 
-        private static async Task RequestAndWriteResultAsync(Socket socket)
+        private static async Task RequestAndWriteResultAsync(RqRep rqRep)
         {
-            XtResult<Response> result = await socket.RequestAsync<Request, Response>(new Request());
+            XtResult<Response> result = await rqRep.RequestAsync<Request, Response>(new Request());
             System.Console.WriteLine(result);
 
             if (result.IsSuccess)
                 System.Console.WriteLine("SUCCEESS!! " + result.GetResult().InsideResponse);
             else
                 System.Console.WriteLine("FAILURE!! " + result.Exception);
+        }
+
+        private static async Task UseBusInterface(SocketConfiguration _)
+        {
+            var bus = Zer0Mq.Go().BuildWithInProc("bus-interface");
+
+            bus.Respond<Request, Response>((r) => new Response());
+
+            var response = await bus.RequestAsync<Request, Response>(new Request());
+            System.Console.WriteLine(response.InsideResponse);
+
+            bus.Dispose();
         }
 
         private class Request 
