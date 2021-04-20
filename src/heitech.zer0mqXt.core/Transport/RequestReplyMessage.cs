@@ -3,7 +3,7 @@ using NetMQ;
 
 namespace heitech.zer0mqXt.core.transport
 {
-    public class RequestReplyMessage<TMessage> : Message<TMessage>
+    internal class RequestReplyMessage<TMessage> : Message<TMessage>
         where TMessage : class
     {
         private readonly bool _isSuccess;
@@ -13,6 +13,17 @@ namespace heitech.zer0mqXt.core.transport
             : base(configuration, message)
         {
             _isSuccess = success;
+        }
+
+        private RequestReplyMessage(SocketConfiguration configuration, string message)
+            : base(configuration, errorMsg: message)
+        {
+            _isSuccess = false;
+        }
+
+        internal static RequestReplyMessage<TMessage> FromError(SocketConfiguration configuration, string error)
+        {
+            return new RequestReplyMessage<TMessage>(configuration, error);
         }
 
         protected internal override NetMQMessage ToNetMqMessage()

@@ -15,7 +15,7 @@ namespace heitech.zer0mqXt.core.tests
         public async Task SimpleRequestAndReply_InProc()
         {
             // Arrange
-            var sut = new Socket(new ConfigurationTestData().GetSocketConfigInProc);
+            var sut = new RqRep(new ConfigurationTestData().GetSocketConfigInProc);
             sut.Respond<Request, Response>(rq => new Response { ResponseNumber = rq.RequestNumber });
 
             // Act
@@ -29,10 +29,10 @@ namespace heitech.zer0mqXt.core.tests
 
         [Theory]
         [ClassData(typeof(ConfigurationTestData))]
-        public async Task SimpleRequestAndReply_Fails_when_factory_throws_Exception_But_still_gets_an_answer(SocketConfiguration configuration)
+        public async Task SimpleRequestAndReply_Fails_when_factory_throws_Exception_But_still_gets_an_answer(object configuration)
         {
             // Arrange
-            var sut = new Socket(configuration);
+            var sut = new RqRep((SocketConfiguration)configuration);
             sut.Respond<Request, Response>(rq => throw new TimeoutException());
 
             // Act
@@ -46,10 +46,10 @@ namespace heitech.zer0mqXt.core.tests
 
         [Theory]
         [ClassData(typeof(ConfigurationTestData))]
-        public async Task Multiple_Threads_Send_To_One_Responder_Works(SocketConfiguration configuration)
+        public async Task Multiple_Threads_Send_To_One_Responder_Works(object configuration)
         {
             // Arrange
-            var sut = new Socket(configuration);
+            var sut = new RqRep((SocketConfiguration)configuration);
             sut.Respond<Request, Response>(rq => new Response { ResponseNumber = rq.RequestNumber });
             var input_output_Tuples = new List<(int, int)>();
             var taskList = new List<Task>()
@@ -69,7 +69,7 @@ namespace heitech.zer0mqXt.core.tests
             sut.Dispose();
         }
 
-        private async Task DoMultipleRequestAsync(Socket sut, int input, List<(int, int)> input_output_Tuples)
+        private async Task DoMultipleRequestAsync(RqRep sut, int input, List<(int, int)> input_output_Tuples)
         {
             var result = await sut.RequestAsync<Request, Response>(new Request { RequestNumber = input });
             Assert.True(result.IsSuccess);
@@ -78,11 +78,12 @@ namespace heitech.zer0mqXt.core.tests
 
         [Theory]
         [ClassData(typeof(ConfigurationTestData))]
-        public async Task Requests_Without_a_Server_returns_Endpoint_not_found_Exception(SocketConfiguration configuration)
+        public async Task Requests_Without_a_Server_returns_Endpoint_not_found_Exception(object configuration)
         {
             // Arrange
-            configuration.TimeOut = TimeSpan.FromMilliseconds(50);
-            var sut = new Socket(configuration);
+            var config = (SocketConfiguration)configuration;
+            config.TimeOut = TimeSpan.FromMilliseconds(50);
+            var sut = new RqRep(config);
             // no server this time around
 
             // Act
@@ -95,11 +96,12 @@ namespace heitech.zer0mqXt.core.tests
 
         [Theory]
         [ClassData(typeof(ConfigurationTestData))]
-        public async Task Requests_With_Server_TimeOut_return_no_success(SocketConfiguration configuration)
+        public async Task Requests_With_Server_TimeOut_return_no_success(object configuration)
         {
             // Arrange
-            configuration.TimeOut = TimeSpan.FromSeconds(1);
-            var sut = new Socket(configuration);
+            var config = (SocketConfiguration)configuration;
+            config.TimeOut = TimeSpan.FromSeconds(1);
+            var sut = new RqRep(config);
             sut.Respond<Request, Response>(rq =>
             {
                 // is a timeout
@@ -121,7 +123,7 @@ namespace heitech.zer0mqXt.core.tests
         {
             // Arrange
             var ipc = new ConfigurationTestData().GetSocketConfigInProc;
-            var sut = new Socket(ipc);
+            var sut = new RqRep(ipc);
             sut.RespondAsync<Request, Response>(r =>
             {
                 return Task.FromResult(new Response { ResponseNumber = (int)Math.Pow(r.RequestNumber, r.RequestNumber) });
@@ -132,6 +134,26 @@ namespace heitech.zer0mqXt.core.tests
 
             // Assert
             Assert.True(result.IsSuccess);
+        }
+
+        [Fact]
+        public async Task Exception_propagation_when_server_response_Throws_to_Requester()
+        {
+             var ipc = new ConfigurationTestData().GetSocketConfigInProc;
+            var sut = new RqRep(ipc);
+            sut.Respond<Request, Response>(r =>
+            {
+                throw new ArgumentException("this is a unit test proving the exception propagation works");
+            });
+
+            // Act
+            var result = await sut.RequestAsync<Request, Response>(new Request { RequestNumber = 2 });
+
+            // Assert
+            Assert.False(result.IsSuccess);
+            Assert.NotNull(result.Exception);
+            Assert.Contains("ArgumentException", result.Exception.Message);
+            Assert.StartsWith("Server failed with" + Environment.NewLine + "ArgumentException", result.Exception.Message);
         }
 
         public void Dispose()
