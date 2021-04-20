@@ -22,7 +22,6 @@ namespace zeromq.terminal
                 ["pubsub"] = RunPubSub,
                 ["reqrep"] = RqRepScenarios.RunReqRep,
                 ["cancel"] = RqRepScenarios.CancellationTokenOnRunningTask,
-                ["bus-all"] = RqRepScenarios.UseBusInterface,
                 ["contest"] = RqRepScenarios.Contest,
                 ["async-server"] = RqRepScenarios.AsyncServer,
                 ["bus-all"] = RqRepScenarios.UseBusInterface
