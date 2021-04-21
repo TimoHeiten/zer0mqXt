@@ -98,7 +98,7 @@ namespace heitech.zer0mqXt.core.patterns
         ///<summary>
         /// Register async Callback on the Respond Action at the server
         ///</summary>
-        public XtResult<Unit> RespondAsync<T, TResult>(Func<T, Task<TResult>> factory, CancellationToken cancellationToken = default)
+        public XtResult RespondAsync<T, TResult>(Func<T, Task<TResult>> factory, CancellationToken cancellationToken = default)
             where T : class, new()
             where TResult : class
         {
@@ -109,7 +109,7 @@ namespace heitech.zer0mqXt.core.patterns
         ///<summary>
         /// Register sync Callback on the Respond Action at the server
         ///</summary>
-        public XtResult<Unit> Respond<T, TResult>(Func<T, TResult> factory, CancellationToken cancellationToken = default)
+        public XtResult Respond<T, TResult>(Func<T, TResult> factory, CancellationToken cancellationToken = default)
             where T : class, new()
             where TResult : class
         {
@@ -120,7 +120,7 @@ namespace heitech.zer0mqXt.core.patterns
         ///<summary>
         /// necessary indirection for the responsehandler to be used in sync or async fashion
         ///</summary>
-        private XtResult<Unit> SetupResponder<T, TResult>(ResponseHandler<T, TResult> handler, CancellationToken token)
+        private XtResult SetupResponder<T, TResult>(ResponseHandler<T, TResult> handler, CancellationToken token)
             where T : class, new()
             where TResult : class
         {
@@ -172,8 +172,8 @@ namespace heitech.zer0mqXt.core.patterns
             // wait for the Set inside the background thread so we can know at the calling client that the server is set up properly
             eventHandle.WaitOne();
             return faultingException == null
-                   ? XtResult<Unit>.Success(Unit.Result(), "setup-response")
-                   : XtResult<Unit>.Failed(ZeroMqXtSocketException.FromException(faultingException), "setup-response");
+                   ? XtResult.Success("setup-response")
+                   : XtResult.Failed(ZeroMqXtSocketException.FromException(faultingException), "setup-response");
         }
 
         ///<summary>

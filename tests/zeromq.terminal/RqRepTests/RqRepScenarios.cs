@@ -18,7 +18,6 @@ namespace zeromq.terminal.RqRepTests
 
             System.Console.WriteLine("try request");
             await RequestAndWriteResultAsync(rqRep);
-            rqRep.Dispose();
         }
 
         internal static async Task CancellationTokenOnRunningTask(SocketConfiguration configuration)
@@ -40,7 +39,7 @@ namespace zeromq.terminal.RqRepTests
 
         internal static async Task AsyncServer(SocketConfiguration configuration)
         {
-             var socket = new RqRep(configuration);
+            using var socket = new RqRep(configuration);
 
             socket.RespondAsync<Request, Response>(async r => 
                 {
@@ -50,8 +49,6 @@ namespace zeromq.terminal.RqRepTests
             );
 
             await RequestAndWriteResultAsync(socket);
-
-            socket.Dispose();
         }
 
         internal static void SetupResponder(RqRep rqRep, CancellationToken token = default)
@@ -74,26 +71,24 @@ namespace zeromq.terminal.RqRepTests
             System.Console.WriteLine(result);
 
             if (result.IsSuccess)
-                System.Console.WriteLine("SUCCEESS!! " + result.GetResult().InsideResponse);
+                System.Console.WriteLine("SUCCESS!! " + result.GetResult().InsideResponse);
             else
                 System.Console.WriteLine("FAILURE!! " + result.Exception);
         }
 
         internal static async Task UseBusInterface(SocketConfiguration _)
         {
-            var bus = Zer0Mq.Go().BuildWithInProc("bus-interface");
+            using var socket = Zer0Mq.Go().BuildWithInProc("bus-interface");
 
-            bus.Respond<Request, Response>((r) => new Response());
+            socket.Respond<Request, Response>((r) => new Response());
 
-            var response = await bus.RequestAsync<Request, Response>(new Request());
+            var response = await socket.RequestAsync<Request, Response>(new Request());
             System.Console.WriteLine(response.InsideResponse);
-
-            bus.Dispose();
         }
 
         internal static Task Contest(SocketConfiguration _)
         {
-            var socket = Zer0Mq.Go().BuildWithInProc("contestion");
+            using var socket = Zer0Mq.Go().BuildWithInProc("contestion");
             socket.Respond<Request, Response>(rq => new Response { InsideResponse = "first-server"});
             try
             {

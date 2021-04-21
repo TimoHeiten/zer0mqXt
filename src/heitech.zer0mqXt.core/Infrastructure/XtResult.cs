@@ -5,24 +5,26 @@ namespace heitech.zer0mqXt.core.infrastructure
     ///<summary>
     /// Represents the Result of a zer0mqXt Message Interaction
     ///</summary>
-    public sealed class XtResult<T>
-        where T : class
+    public class XtResultBase
     {
         ///<summary>
         /// Was the Operation successful?
         ///</summary>
-        public bool IsSuccess => !(_result is null);
+        public bool IsSuccess => (Exception is null);
         ///<summary>
         /// Exception is not null if XtResult.IsSuccess is false
         ///</summary>
-        public Exception Exception { get; private set; }
+        public Exception Exception { get; protected set; }
 
         ///<summary>
         /// For debugger purposes the Operation is documented
         ///</summary>
-        public string Operation { get; private set; }
+        public string Operation { get; protected set; }
+    }
 
-
+    public sealed class XtResult<T> : XtResultBase
+        where T : class
+    {
         private T _result;
         public T GetResult()
         {
@@ -51,6 +53,28 @@ namespace heitech.zer0mqXt.core.infrastructure
             var second = IsSuccess ? _result?.GetType() : Exception?.GetType();
 
             return $"{firstPart} with Type [{second}]";
+        }
+    }
+
+    public sealed class XtResult : XtResultBase 
+    {
+        internal static XtResult Failed(Exception exception, string operation = "request")
+        {
+            return new XtResult { Exception = exception };
+        }
+
+        internal static XtResult Success(string operation = "request")
+        {
+            return new XtResult { Exception = null, Operation = operation };
+        }
+
+        public override string ToString()
+        {
+            var success = IsSuccess ? " succeeded " : " failed";
+            var firstPart = $"XtResult of [{Operation}] - has {success}";
+            var second = " with: " + Exception?.GetType();
+
+            return $"{firstPart} {second}";
         }
     }
 }
