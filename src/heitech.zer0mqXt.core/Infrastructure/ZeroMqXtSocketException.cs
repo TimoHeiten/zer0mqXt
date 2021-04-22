@@ -4,7 +4,7 @@ namespace heitech.zer0mqXt.core.infrastructure
 {
     public class ZeroMqXtSocketException : Exception
     {
-        public ZeroMqXtSocketException(string message) : base(message)
+        internal ZeroMqXtSocketException(string message) : base(message)
         { }
 
         internal static ZeroMqXtSocketException FromException(Exception exception)

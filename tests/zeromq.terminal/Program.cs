@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using heitech.zer0mqXt.core.infrastructure;
-using heitech.zer0mqXt.core.Main;
 using heitech.zer0mqXt.core.patterns;
+using zeromq.terminal.RqRepTests;
 
 namespace zeromq.terminal
 {
@@ -21,10 +20,11 @@ namespace zeromq.terminal
             _terminalActions = new Dictionary<string, Func<SocketConfiguration, Task>>
             {
                 ["pubsub"] = RunPubSub,
-                ["reqrep"] = RunReqRep,
-                ["cancel"] = CancellationTokenOnRunningTask,
-                ["async-server"] = RunRequestWithAsyncServer,
-                ["bus-all"] = UseBusInterface
+                ["reqrep"] = RqRepScenarios.RunReqRep,
+                ["cancel"] = RqRepScenarios.CancellationTokenOnRunningTask,
+                ["contest"] = RqRepScenarios.Contest,
+                ["async-server"] = RqRepScenarios.AsyncServer,
+                ["bus-all"] = RqRepScenarios.UseBusInterface
             };
         }
 
@@ -34,7 +34,7 @@ namespace zeromq.terminal
             var configuration = SocketConfiguration.InprocConfig($"this-inproc-sir-{Guid.NewGuid()}");
             configuration.TimeOut = TimeSpan.FromSeconds(2);
             
-            string key = "reqrep";
+            string key = "contest";
             var actions = args.Where(x => _terminalActions.ContainsKey(x)).Select(x => _terminalActions[x]).ToList();
             if (actions.Any())
             {
@@ -69,97 +69,6 @@ namespace zeromq.terminal
 
                 input = Console.ReadLine();
             }
-        }
-
-        private static async Task RunReqRep(SocketConfiguration configuration)
-        {
-            using var rqRep = new RqRep(configuration);
-
-            SetupResponder(rqRep);
-
-            System.Console.WriteLine("try request");
-            await RequestAndWriteResultAsync(rqRep);
-            rqRep.Dispose();
-        }
-
-        private static async Task CancellationTokenOnRunningTask(SocketConfiguration configuration)
-        {
-            var socket = new RqRep(configuration);
-
-            using var cts = new CancellationTokenSource();
-            var token = cts.Token;
-            SetupResponder(socket, token: token);
-            cts.Cancel();
-
-            // the first one will always come threw, no matter what
-            System.Console.WriteLine("try multiple requests");
-            foreach (var item in Enumerable.Range(0, 3))
-            {
-                await RequestAndWriteResultAsync(socket);
-            } 
-        }
-
-        private static async Task RunRequestWithAsyncServer(SocketConfiguration configuration)
-        {
-            var socket = new RqRep(configuration);
-
-            socket.RespondAsync<Request, Response>(async r => 
-                {
-                    await Task.Delay(100);
-                    return new Response { InsideResponse = "waited asynchronously for 100ms" };
-                }
-            );
-
-            await RequestAndWriteResultAsync(socket);
-
-            socket.Dispose();
-        }
-
-        private static void SetupResponder(RqRep rqRep, CancellationToken token = default)
-        {
-            rqRep.Respond<Request, Response>((rq) => 
-            {
-                System.Console.WriteLine();
-                System.Console.WriteLine("now calling the factory");
-                System.Console.WriteLine();
-                var rsp = new Response();
-                rsp.InsideResponse += " " + rq.FromRequest;
-
-                return rsp;
-            }, cancellationToken: token);
-        }
-
-        private static async Task RequestAndWriteResultAsync(RqRep rqRep)
-        {
-            XtResult<Response> result = await rqRep.RequestAsync<Request, Response>(new Request());
-            System.Console.WriteLine(result);
-
-            if (result.IsSuccess)
-                System.Console.WriteLine("SUCCEESS!! " + result.GetResult().InsideResponse);
-            else
-                System.Console.WriteLine("FAILURE!! " + result.Exception);
-        }
-
-        private static async Task UseBusInterface(SocketConfiguration _)
-        {
-            var bus = Zer0Mq.Go().BuildWithInProc("bus-interface");
-
-            bus.Respond<Request, Response>((r) => new Response());
-
-            var response = await bus.RequestAsync<Request, Response>(new Request());
-            System.Console.WriteLine(response.InsideResponse);
-
-            bus.Dispose();
-        }
-
-        private class Request 
-        {
-            public string FromRequest { get; set; } = "Message from Request";
-        }
-
-        private class Response
-        {
-            public string InsideResponse { get; set; } = "Message inside Response";
         }
 
         private class Message { public string Text { get; set; } }

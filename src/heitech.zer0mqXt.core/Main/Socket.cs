@@ -10,7 +10,7 @@ namespace heitech.zer0mqXt.core.Main
     {
         private readonly RqRep _rqRep;
         private readonly PubSub _pubSub;
-        public Socket(SocketConfiguration config) 
+        internal Socket(SocketConfiguration config) 
         {
             _rqRep = new RqRep(config);
             _pubSub = new PubSub(config);
@@ -59,14 +59,18 @@ namespace heitech.zer0mqXt.core.Main
             where TRequest : class, new()
             where TResult : class, new()
         {
-            _rqRep.Respond<TRequest, TResult>(callback, cancellationToken);
+            var result = _rqRep.Respond<TRequest, TResult>(callback, cancellationToken);
+            if (result.IsSuccess == false)
+                throw result.Exception;
         }
 
         public void RespondAsync<TRequest, TResult>(Func<TRequest, Task<TResult>> callback, CancellationToken cancellationToken = default)
             where TRequest : class, new()
             where TResult : class, new()
         {
-            // todo
+            var result = _rqRep.RespondAsync<TRequest, TResult>(callback, cancellationToken);
+            if (result.IsSuccess == false)
+                throw result.Exception;
         }
     }
 }

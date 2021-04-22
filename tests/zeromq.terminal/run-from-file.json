@@ -1,0 +1,8 @@
+{
+    "actions" : [
+        "pubsub",
+        "reqrep",
+        "cancel",
+        "bus-all"
+    ]
+}

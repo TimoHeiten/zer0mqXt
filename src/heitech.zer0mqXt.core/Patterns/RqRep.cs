@@ -3,6 +3,7 @@ using heitech.zer0mqXt.core.transport;
 using NetMQ;
 using NetMQ.Sockets;
 using System;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -97,29 +98,29 @@ namespace heitech.zer0mqXt.core.patterns
         ///<summary>
         /// Register async Callback on the Respond Action at the server
         ///</summary>
-        public void RespondAsync<T, TResult>(Func<T, Task<TResult>> factory, CancellationToken cancellationToken = default)
+        public XtResult RespondAsync<T, TResult>(Func<T, Task<TResult>> factory, CancellationToken cancellationToken = default)
             where T : class, new()
             where TResult : class
         {
             var responseHandler = ResponseHandler<T, TResult>.ASync(factory);
-            SetupResponder(responseHandler, cancellationToken);
+            return SetupResponder(responseHandler, cancellationToken);
         }
 
         ///<summary>
         /// Register sync Callback on the Respond Action at the server
         ///</summary>
-        public void Respond<T, TResult>(Func<T, TResult> factory, CancellationToken cancellationToken = default)
+        public XtResult Respond<T, TResult>(Func<T, TResult> factory, CancellationToken cancellationToken = default)
             where T : class, new()
             where TResult : class
         {
             var responseHandler = ResponseHandler<T, TResult>.Sync(factory);
-            SetupResponder(responseHandler, cancellationToken);
+            return SetupResponder(responseHandler, cancellationToken);
         }
 
         ///<summary>
         /// necessary indirection for the responsehandler to be used in sync or async fashion
         ///</summary>
-        private void SetupResponder<T, TResult>(ResponseHandler<T, TResult> handler, CancellationToken token)
+        private XtResult SetupResponder<T, TResult>(ResponseHandler<T, TResult> handler, CancellationToken token)
             where T : class, new()
             where TResult : class
         {
@@ -140,7 +141,8 @@ namespace heitech.zer0mqXt.core.patterns
             eventHandle = new ManualResetEvent(false);
             // create a new background thread with the response callback
             
-            Task.Run(() => 
+            Exception faultingException = null;
+            var task = Task.Run(() => 
             {
                 try
                 {
@@ -153,11 +155,11 @@ namespace heitech.zer0mqXt.core.patterns
 
                     // poller blocks, so it has to be started after the eventhandle is set
                     poller.RunAsync();
-                    
                 }
                 catch (Exception exception)
                 {
-                    _configuration.Logger.Log(new ErrorLogMsg(exception.Message));
+                    faultingException = exception;
+                    _configuration.Logger.Log(new ErrorLogMsg(exception.GetType().Name + "-" + exception.Message));
                     Dispose();
                 }
                 finally
@@ -169,6 +171,9 @@ namespace heitech.zer0mqXt.core.patterns
 
             // wait for the Set inside the background thread so we can know at the calling client that the server is set up properly
             eventHandle.WaitOne();
+            return faultingException == null
+                   ? XtResult.Success("setup-response")
+                   : XtResult.Failed(ZeroMqXtSocketException.FromException(faultingException), "setup-response");
         }
 
         ///<summary>
@@ -264,7 +269,9 @@ namespace heitech.zer0mqXt.core.patterns
                 if (disposing)
                 {
                     respondingIsActive = false;
-                    poller?.Stop();
+                    if (poller != null && poller.IsRunning)
+                        poller.Stop();
+
                     if (responseSocket != null && receiveHandler != null)
                         responseSocket.ReceiveReady -= receiveHandler;
                 }

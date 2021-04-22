@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using heitech.zer0mqXt.core.infrastructure;
+using heitech.zer0mqXt.core.Main;
 using heitech.zer0mqXt.core.patterns;
 using Xunit;
 
@@ -156,13 +157,40 @@ namespace heitech.zer0mqXt.core.tests
             Assert.StartsWith("Server failed with" + Environment.NewLine + "ArgumentException", result.Exception.Message);
         }
 
+        [Fact]
+        public void Single_instance_of_RqRep_trying_to_setup_another_responder_on_same_instance_throws()
+        {
+            // Arrange
+            var bus = Zer0Mq.Go().BuildWithInProc("pipe-throw");
+            bus.Respond<Request, Response>((r) => new Response());
+
+            // Act
+            Action setupActionThatThrows = () => bus.Respond<Request, Response>((r) => new Response());
+            
+            // Assert
+            Assert.Throws<ZeroMqXtSocketException>(setupActionThatThrows);
+        }
+
+        [Fact]
+        public void Multiple_Socket_instances_and_multiple_responders_on_same_configuration_and_address_throws()
+        {
+            // Arrange
+            var socket = Zer0Mq.Go().BuildWithInProc("pipe-throws");
+            socket.Respond<Request, Response>((r) => new Response { ResponseNumber = 1} );
+
+            // Act
+            var socket2 = Zer0Mq.Go().BuildWithInProc("pipe-throws");
+            Action throwingAction = () => socket2.Respond<Request, Response>((r) => new Response { ResponseNumber = 2} );
+
+            // Assert
+            Assert.Throws<ZeroMqXtSocketException>(throwingAction);
+        }
+
         public void Dispose()
         {
             SocketConfiguration.CleanUp();
         }
 
-        // todo cancel server, stops response
-        // todo multiple servers for same type (Contestion?)
 
         private class Request { public int RequestNumber { get; set; } }
         private class Response { public int ResponseNumber { get; set; } }
