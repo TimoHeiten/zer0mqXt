@@ -10,12 +10,11 @@ namespace heitech.zer0mqXt.core.tests
 {
     public class SendReceiveTests
     {
-        [Theory]
-        [ClassData(typeof(ConfigurationTestData))]
-        public async Task SendReceive_works(object configuration)
+        [Fact]
+        public async Task SendReceive_works()
         {
             // Arrange
-            var config = (SocketConfiguration)configuration;
+            var config = new ConfigurationTestData().GetSocketConfigInProc;
             using var sut = new SendReceive(config);
             int result = -1;
             sut.SetupReceiver<Message>(m => result = m.Number);
