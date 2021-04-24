@@ -11,6 +11,7 @@ namespace heitech.zer0mqXt.core
     {
         //todo create interface to replace services as soon as an injector is decided
         IZer0MqBuilder SetLogger(ILogger adapter);
+        IZer0MqBuilder SilentLogger();
         IZer0MqBuilder SetSerializer(ISerializerAdapter adapter);
 
         ISocket BuildWithTcp(string host, string port);

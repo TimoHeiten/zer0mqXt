@@ -10,16 +10,20 @@ namespace heitech.zer0mqXt.core.Main
     {
         private readonly RqRep _rqRep;
         private readonly PubSub _pubSub;
+        private readonly SendReceive _sendReceive;
+
         internal Socket(SocketConfiguration config) 
         {
             _rqRep = new RqRep(config);
             _pubSub = new PubSub(config);
+            _sendReceive = new SendReceive(config);
         }
 
         public void Dispose()
         {
             _rqRep.Dispose();
             _pubSub.Dispose();
+            _sendReceive.Dispose();
         }
 
         public async Task PublishAsync<TMessage>(TMessage message) 
@@ -71,6 +75,33 @@ namespace heitech.zer0mqXt.core.Main
             var result = _rqRep.RespondAsync<TRequest, TResult>(callback, cancellationToken);
             if (result.IsSuccess == false)
                 throw result.Exception;
+        }
+
+        public async Task SendAsync<TMessage>(TMessage message) 
+            where TMessage : class, new()
+        {
+            var xtResult = await _sendReceive.SendAsync(message);
+
+            if (xtResult.IsSuccess == false)
+                throw xtResult.Exception;
+        }
+
+        public void Receiver<TMessage>(Action<TMessage> callback, CancellationToken token = default) 
+            where TMessage : class, new()
+        {
+            var xtResult = _sendReceive.SetupReceiver(callback, token);
+
+            if (xtResult.IsSuccess == false)
+                throw xtResult.Exception;
+        }
+
+        public void ReceiverAsync<TMessage>(Func<TMessage, Task> asyncCallack, CancellationToken token = default) 
+            where TMessage : class, new()
+        {
+            var xtResult = _sendReceive.SetupReceiverAsync(asyncCallack, token);
+
+            if (xtResult.IsSuccess == false)
+                throw xtResult.Exception;
         }
     }
 }

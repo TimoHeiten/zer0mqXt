@@ -5,8 +5,10 @@ namespace heitech.zer0mqXt.core.Main
 {
     public class Zer0Mq : IZer0MqBuilder
     {
+        private bool _isSilent;
         private ILogger _logger;
         private ISerializerAdapter _serializer;
+
         private Zer0Mq()
         {
             _logger = new BasicLogger();
@@ -25,6 +27,9 @@ namespace heitech.zer0mqXt.core.Main
             return this;
         }
 
+        ///<summary>
+        /// Entry point for building a new ISocket instance with the desired configuration
+        ///</summary>
         public static IZer0MqBuilder Go() => new Zer0Mq();
 
         public ISocket BuildWithInProc(string pipeName)
@@ -37,8 +42,16 @@ namespace heitech.zer0mqXt.core.Main
         {
             configuration.Serializer = _serializer;
             configuration.Logger = _logger;
+            if (_isSilent)
+                _logger.SetSilent();
 
             return new Socket(configuration);
+        }
+
+        public IZer0MqBuilder SilentLogger()
+        {
+            _isSilent = true;
+            return this;
         }
     }
 }
