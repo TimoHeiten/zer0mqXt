@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using heitech.zer0mqXt.core.infrastructure;
-using heitech.zer0mqXt.core.Main;
 using heitech.zer0mqXt.core.patterns;
 using Xunit;
 
@@ -161,7 +160,7 @@ namespace heitech.zer0mqXt.core.tests
         public void Single_instance_of_RqRep_trying_to_setup_another_responder_on_same_instance_throws()
         {
             // Arrange
-            var bus = Zer0Mq.Go().BuildWithInProc("pipe-throw");
+            using var bus = ConfigurationTestData.BuildInprocSocketInstanceForTest("single-instance-rq-rep-pipe");
             bus.Respond<Request, Response>((r) => new Response());
 
             // Act
@@ -175,16 +174,66 @@ namespace heitech.zer0mqXt.core.tests
         public void Multiple_Socket_instances_and_multiple_responders_on_same_configuration_and_address_throws()
         {
             // Arrange
-            var socket = Zer0Mq.Go().BuildWithInProc("pipe-throws");
+            const string pipeName = "pipe-throws";
+            using var socket = ConfigurationTestData.BuildInprocSocketInstanceForTest(pipeName);
             socket.Respond<Request, Response>((r) => new Response { ResponseNumber = 1} );
 
             // Act
-            var socket2 = Zer0Mq.Go().BuildWithInProc("pipe-throws");
+            using var socket2 = ConfigurationTestData.BuildInprocSocketInstanceForTest(pipeName);
             Action throwingAction = () => socket2.Respond<Request, Response>((r) => new Response { ResponseNumber = 2} );
 
             // Assert
             Assert.Throws<ZeroMqXtSocketException>(throwingAction);
         }
+
+        [Fact]
+        public async Task TryRequest_returns_false_when_no_server_exists()
+        {
+            // Arrange
+            using var socket = ConfigurationTestData.BuildInprocSocketInstanceForTest("try-request-pipe");
+            bool isSuccess = false;
+
+            // Act
+            await socket.TryRequestAsync<Request, Response>(new Request(),
+                successCallback: r => { isSuccess = true; return Task.CompletedTask; },
+                failureCallback: () => Task.CompletedTask
+            );
+
+            // Assert
+            Assert.False(isSuccess);
+        }
+
+        [Fact]
+        public void TryRespond_returns_false_when_a_server_already_exists()
+        {
+            // Arrange
+            using var socket = ConfigurationTestData.BuildInprocSocketInstanceForTest("inproc-try-methods-pipe-respond");
+            using var anotherSocket = ConfigurationTestData.BuildInprocSocketInstanceForTest("inproc-try-methods-pipe-respond");
+            socket.Respond<Request, Response>(r => new Response());
+
+            // Act
+            bool success = anotherSocket.TryRespond<Request, Response>((r) => new Response());
+
+            // Assert
+            Assert.False(success);
+        }
+
+        [Fact]
+        public void TryRespond_on_same_socket_instance_still_throws()
+        {
+            // Arrange
+            using var socket = ConfigurationTestData.BuildInprocSocketInstanceForTest("inproc-try-methods-pipe-respond-same-socket");
+            socket.Respond<Request, Response>(r => new Response());
+
+            // Act
+            Action a = () => socket.TryRespond<Request, Response>((r) => new Response());
+
+            // Assert
+            Assert.Throws<ZeroMqXtSocketException>(a);
+        }
+
+        
+
 
         public void Dispose()
         {

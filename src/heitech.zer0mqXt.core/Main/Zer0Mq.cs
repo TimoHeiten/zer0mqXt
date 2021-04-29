@@ -5,6 +5,7 @@ namespace heitech.zer0mqXt.core.Main
 {
     public class Zer0Mq : IZer0MqBuilder
     {
+        private bool _isSilent;
         private ILogger _logger;
         private ISerializerAdapter _serializer;
         private Zer0Mq()
@@ -37,8 +38,16 @@ namespace heitech.zer0mqXt.core.Main
         {
             configuration.Serializer = _serializer;
             configuration.Logger = _logger;
+            if (_isSilent)
+                _logger.SetSilent();
 
             return new Socket(configuration);
+        }
+
+        public IZer0MqBuilder SilenceLogger()
+        {
+            _isSilent = true;
+            return this;
         }
     }
 }
