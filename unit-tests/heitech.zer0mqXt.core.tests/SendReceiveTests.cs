@@ -59,7 +59,6 @@ namespace heitech.zer0mqXt.core.tests
 
             // Assert
             Assert.False(xtResult.IsSuccess);
-            sut.Dispose();
         }
 
 
