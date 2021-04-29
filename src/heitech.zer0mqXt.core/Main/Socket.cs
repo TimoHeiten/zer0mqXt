@@ -73,17 +73,6 @@ namespace heitech.zer0mqXt.core.Main
                 throw result.Exception;
         }
 
-        public async Task<(bool, TResult)> TryRequestAsync<TRequest, TResult>(TRequest request)
-            where TRequest : class, new()
-            where TResult : class, new()
-        {
-            var xtResult = await _rqRep.RequestAsync<TRequest, TResult>(request);
-
-            return xtResult.IsSuccess
-                   ? (true, xtResult.GetResult())
-                   : (false, null);
-        }
-
          public async Task TryRequestAsync<TRequest, TResult>(TRequest request, Func<TResult, Task> successCallback, Func<Task> failureCallback)
             where TRequest : class, new()
             where TResult : class, new()
@@ -101,11 +90,7 @@ namespace heitech.zer0mqXt.core.Main
             where TResult : class, new()
         {
             var xtResult = _rqRep.Respond<TRequest, TResult>(callback, cancellationToken);
-            
-            return xtResult.IsSuccess
-                   ? true
-                   : false;
-            
+            return xtResult.IsSuccess;
         }
 
         public bool TryRespondAsync<TRequest, TResult>(Func<TRequest, Task<TResult>> callback, CancellationToken cancellationToken = default)
@@ -113,10 +98,7 @@ namespace heitech.zer0mqXt.core.Main
             where TResult : class, new()
         {
             var xtResult = _rqRep.RespondAsync<TRequest, TResult>(callback, cancellationToken);
-
-            return xtResult.IsSuccess
-                   ? true
-                   : false;
+            return xtResult.IsSuccess;
         }
     }
 }

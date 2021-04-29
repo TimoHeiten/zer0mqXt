@@ -187,10 +187,10 @@ namespace heitech.zer0mqXt.core.tests
         }
 
         [Fact]
-        public async Task TryRequest_returns_false_when_no_server_exists()
+        public async Task TryRequest_invokes_failureCallback_when_no_server_exists()
         {
             // Arrange
-            using var socket = ConfigurationTestData.BuildInprocSocketInstanceForTest("try-request-pipe");
+            using var socket = ConfigurationTestData.BuildInprocSocketInstanceForTest("try-request-pipe-failure");
             bool isSuccess = false;
 
             // Act
@@ -201,6 +201,25 @@ namespace heitech.zer0mqXt.core.tests
 
             // Assert
             Assert.False(isSuccess);
+        }
+
+        [Fact]
+        public async Task TryRequest_invokes_success_callback_when_a_server_exists()
+        {
+            // Arrange
+            const string pipeName = "try-request-pipe-success";
+            using var socket = ConfigurationTestData.BuildInprocSocketInstanceForTest(pipeName);
+            bool isSuccess = false;
+            socket.Respond<Request, Response>(r => new Response());
+
+            // Act
+            await socket.TryRequestAsync<Request, Response>(new Request(),
+                successCallback: r => { isSuccess = true; return Task.CompletedTask; },
+                failureCallback: () => Task.CompletedTask
+            );
+
+            // Assert
+            Assert.True(isSuccess);
         }
 
         [Fact]
@@ -216,6 +235,19 @@ namespace heitech.zer0mqXt.core.tests
 
             // Assert
             Assert.False(success);
+        }
+
+        [Fact]
+        public void TryRespond_returns_true_when_a_server_does_not_exist_for_the_configuration()
+        {
+            // Arrange
+            using var socket = ConfigurationTestData.BuildInprocSocketInstanceForTest("inproc-try-methods-pipe-respond-success");
+
+            // Act
+            bool success = socket.TryRespond<Request, Response>((r) => new Response());
+
+            // Assert
+            Assert.True(success);
         }
 
         [Fact]
