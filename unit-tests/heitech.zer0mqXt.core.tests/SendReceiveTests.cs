@@ -108,7 +108,7 @@ namespace heitech.zer0mqXt.core.tests
         public void Single_instance_of_SendReceive_trying_to_setup_another_responder_or_receiver_on_same_instance_throws()
         {
             // Arrange
-            using var socket = Zer0Mq.Go().SilentLogger().BuildWithInProc("send-pipe-throw");
+            using var socket = Zer0Mq.Go().SilenceLogger().BuildWithInProc("send-pipe-throw");
             socket.Receiver<Message>((r) => { });
 
             // Act
@@ -124,7 +124,7 @@ namespace heitech.zer0mqXt.core.tests
         public void Multiple_Socket_instances_and_multiple_responders_on_same_configuration_and_address_throws()
         {
             const string inpipeThrows = "send-pipe-throws";
-            Func<IZer0MqBuilder> builderFactory = () => Zer0Mq.Go().SilentLogger();
+            Func<IZer0MqBuilder> builderFactory = () => Zer0Mq.Go().SilenceLogger();
             // Arrange
             using var socket = builderFactory().BuildWithInProc(inpipeThrows);
             socket.Receiver<Message>((r) => { });

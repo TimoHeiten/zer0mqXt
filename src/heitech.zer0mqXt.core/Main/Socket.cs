@@ -6,12 +6,14 @@ using heitech.zer0mqXt.core.patterns;
 
 namespace heitech.zer0mqXt.core.Main
 {
+    ///<inheritdoc cref="ISocket"/>
     internal class Socket : ISocket
     {
         private readonly RqRep _rqRep;
         private readonly PubSub _pubSub;
         private readonly SendReceive _sendReceive;
 
+        ///<inheritdoc/>
         internal Socket(SocketConfiguration config) 
         {
             _rqRep = new RqRep(config);
@@ -29,10 +31,9 @@ namespace heitech.zer0mqXt.core.Main
         public async Task PublishAsync<TMessage>(TMessage message) 
             where TMessage : class, new()
         {
-            var result = await _pubSub.PublishAsync(message);
+            var xtResult = await _pubSub.PublishAsync(message);
 
-            if (result.IsSuccess == false)
-                throw ZeroMqXtSocketException.FromException(result.Exception);
+            ThrowOnNonSuccess(xtResult);
         }
 
         public void RegisterAsyncSubscriber<TMessage>(Func<TMessage, Task> asyncCallback, CancellationToken cancellationToken = default)
@@ -53,8 +54,7 @@ namespace heitech.zer0mqXt.core.Main
             where TResult : class, new()
         {
             var xtResult = await _rqRep.RequestAsync<TRequest, TResult>(request);
-            if (xtResult.IsSuccess == false)
-                throw ZeroMqXtSocketException.FromException(xtResult.Exception);
+            ThrowOnNonSuccess(xtResult);
 
             return xtResult.GetResult();
         }
@@ -63,18 +63,16 @@ namespace heitech.zer0mqXt.core.Main
             where TRequest : class, new()
             where TResult : class, new()
         {
-            var result = _rqRep.Respond<TRequest, TResult>(callback, cancellationToken);
-            if (result.IsSuccess == false)
-                throw result.Exception;
+            var xtResult = _rqRep.Respond<TRequest, TResult>(callback, cancellationToken);
+            ThrowOnNonSuccess(xtResult);
         }
 
         public void RespondAsync<TRequest, TResult>(Func<TRequest, Task<TResult>> callback, CancellationToken cancellationToken = default)
             where TRequest : class, new()
             where TResult : class, new()
         {
-            var result = _rqRep.RespondAsync<TRequest, TResult>(callback, cancellationToken);
-            if (result.IsSuccess == false)
-                throw result.Exception;
+            var xtResult = _rqRep.RespondAsync<TRequest, TResult>(callback, cancellationToken);
+            ThrowOnNonSuccess(xtResult);
         }
 
         public async Task SendAsync<TMessage>(TMessage message) 
@@ -82,8 +80,7 @@ namespace heitech.zer0mqXt.core.Main
         {
             var xtResult = await _sendReceive.SendAsync(message);
 
-            if (xtResult.IsSuccess == false)
-                throw xtResult.Exception;
+            ThrowOnNonSuccess(xtResult);
         }
 
         public void Receiver<TMessage>(Action<TMessage> callback, CancellationToken token = default) 
@@ -91,8 +88,7 @@ namespace heitech.zer0mqXt.core.Main
         {
             var xtResult = _sendReceive.SetupReceiver(callback, token);
 
-            if (xtResult.IsSuccess == false)
-                throw xtResult.Exception;
+            ThrowOnNonSuccess(xtResult);
         }
 
         public void ReceiverAsync<TMessage>(Func<TMessage, Task> asyncCallack, CancellationToken token = default) 
@@ -100,8 +96,13 @@ namespace heitech.zer0mqXt.core.Main
         {
             var xtResult = _sendReceive.SetupReceiverAsync(asyncCallack, token);
 
+            ThrowOnNonSuccess(xtResult);
+        }
+
+        private void ThrowOnNonSuccess(XtResultBase xtResult)
+        {
             if (xtResult.IsSuccess == false)
-                throw xtResult.Exception;
+                throw ZeroMqXtSocketException.FromException(xtResult.Exception);
         }
     }
 }

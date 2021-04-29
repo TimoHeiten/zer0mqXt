@@ -161,7 +161,7 @@ namespace heitech.zer0mqXt.core.tests
         public void Single_instance_of_RqRep_trying_to_setup_another_responder_on_same_instance_throws()
         {
             // Arrange
-            var bus = Zer0Mq.Go().SilentLogger().BuildWithInProc("pipe-throw");
+            var bus = Zer0Mq.Go().SilenceLogger().BuildWithInProc("pipe-throw");
             bus.Respond<Request, Response>((r) => new Response());
 
             // Act
@@ -175,11 +175,11 @@ namespace heitech.zer0mqXt.core.tests
         public void Multiple_Socket_instances_and_multiple_responders_on_same_configuration_and_address_throws()
         {
             // Arrange
-            var socket = Zer0Mq.Go().SilentLogger().BuildWithInProc("pipe-throws");
+            var socket = Zer0Mq.Go().SilenceLogger().BuildWithInProc("pipe-throws");
             socket.Respond<Request, Response>((r) => new Response { ResponseNumber = 1} );
 
             // Act
-            var socket2 = Zer0Mq.Go().SilentLogger().BuildWithInProc("pipe-throws");
+            var socket2 = Zer0Mq.Go().SilenceLogger().BuildWithInProc("pipe-throws");
             Action throwingAction = () => socket2.Respond<Request, Response>((r) => new Response { ResponseNumber = 2} );
 
             // Assert

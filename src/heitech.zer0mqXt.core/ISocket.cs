@@ -17,14 +17,14 @@ namespace heitech.zer0mqXt.core
             where TResult : class, new();
 
         ///<summary>
-        /// Setup a nonblocking Responder to a Request of type of TRequest and return a TResult
+        /// Setup a non blocking Responder to a Request of type of TRequest and return a TResult
         ///</summary>
         void Respond<TRequest, TResult>(Func<TRequest, TResult> callback, CancellationToken cancellationToken = default)
             where TRequest : class, new()
             where TResult : class, new();
 
         ///<summary>
-        /// Setup an asynchronous and nonblocking Responder for a Request of TRequest and return a TResult
+        /// Setup an asynchronous and non blocking Responder for a Request of TRequest and return a TResult
         ///</summary>
         void RespondAsync<TRequest, TResult>(Func<TRequest, Task<TResult>> callback, CancellationToken cancellationToken = default)
             where TRequest : class, new()
@@ -55,13 +55,13 @@ namespace heitech.zer0mqXt.core
             where TMessage : class, new();
 
         ///<summary>
-        /// Setup a nonblocking Receiver of type TMessage to the current configuration
+        /// Setup a non blocking Receiver of type TMessage to the current configuration
         ///</summary>
         void Receiver<TMessage>(Action<TMessage> callback, CancellationToken token = default)
             where TMessage : class, new();
 
         ///<summary>
-        /// Setup an asynchronous and nonblocking Receiver of type TMessage to the current configuration
+        /// Setup an asynchronous and non blocking Receiver of type TMessage to the current configuration
         ///</summary>
         void ReceiverAsync<TMessage>(Func<TMessage, Task> asyncCallack, CancellationToken token = default)
             where TMessage : class, new();

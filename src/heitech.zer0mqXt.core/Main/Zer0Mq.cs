@@ -3,6 +3,7 @@ using heitech.zer0mqXt.core.infrastructure;
 
 namespace heitech.zer0mqXt.core.Main
 {
+    ///<inheritdoc cref="IZer0MqBuilder"/>
     public class Zer0Mq : IZer0MqBuilder
     {
         private bool _isSilent;
@@ -48,7 +49,7 @@ namespace heitech.zer0mqXt.core.Main
             return new Socket(configuration);
         }
 
-        public IZer0MqBuilder SilentLogger()
+        public IZer0MqBuilder SilenceLogger()
         {
             _isSilent = true;
             return this;
