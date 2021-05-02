@@ -4,8 +4,8 @@ using heitech.zer0mqXt.core.infrastructure;
 namespace heitech.zer0mqXt.core
 {
     ///<summary>
-    /// Build an IEntry for each of your configurations. Before you call build make sure to specify your services
-    /// Those will then be utilized for every Instance of IEntry afterwards
+    /// Build an ISocket for each of your configurations. Before you call build make sure to specify your services like Serializer and Logger
+    /// Those will then be utilized for every Instance of ISocket afterwards
     ///</summary>
     public interface IZer0MqBuilder
     {

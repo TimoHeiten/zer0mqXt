@@ -9,10 +9,25 @@ namespace heitech.zer0mqXt.core.tests
     public class ConfigurationTestData : IEnumerable<object[]>
     {
         internal SocketConfiguration GetSocketConfigInProc
-            => SocketConfiguration.InprocConfig("test-pipe" + Guid.NewGuid());
+        {
+            get 
+            {
+                var c = SocketConfiguration.InprocConfig("test-pipe" + Guid.NewGuid());
+                c.Logger.SetSilent();
+                return c;
+            }
+
+        }
 
         internal SocketConfiguration GetSocketConfigTcp
-            => SocketConfiguration.TcpConfig(port: "5566", host: "localhost");
+        {
+            get 
+            {
+                var c = SocketConfiguration.TcpConfig(port: "5566", host: "localhost");
+                c.Logger.SetSilent();
+                return c;
+            }
+        }
 
         public IEnumerator<object[]> GetEnumerator()
         {
@@ -26,6 +41,9 @@ namespace heitech.zer0mqXt.core.tests
             yield return new object[] { inProc };
             yield return new object[] { tcp };
         }
+
+        internal static ISocket BuildInProcSocketInstanceForTest(string pipeName)
+            => Zer0Mq.Go().SilenceLogger().BuildWithInProc(pipeName);
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 

@@ -3,11 +3,13 @@ using heitech.zer0mqXt.core.infrastructure;
 
 namespace heitech.zer0mqXt.core.Main
 {
+    ///<inheritdoc cref="IZer0MqBuilder"/>
     public class Zer0Mq : IZer0MqBuilder
     {
         private bool _isSilent;
         private ILogger _logger;
         private ISerializerAdapter _serializer;
+
         private Zer0Mq()
         {
             _logger = new BasicLogger();
@@ -26,6 +28,9 @@ namespace heitech.zer0mqXt.core.Main
             return this;
         }
 
+        ///<summary>
+        /// Entry point for building a new ISocket instance with the desired configuration
+        ///</summary>
         public static IZer0MqBuilder Go() => new Zer0Mq();
 
         public ISocket BuildWithInProc(string pipeName)

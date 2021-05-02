@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using heitech.zer0mqXt.core.infrastructure;
+using heitech.zer0mqXt.core.Main;
 using heitech.zer0mqXt.core.patterns;
 using Xunit;
 
@@ -139,7 +140,7 @@ namespace heitech.zer0mqXt.core.tests
         [Fact]
         public async Task Exception_propagation_when_server_response_Throws_to_Requester()
         {
-             var ipc = new ConfigurationTestData().GetSocketConfigInProc;
+            var ipc = new ConfigurationTestData().GetSocketConfigInProc;
             var sut = new RqRep(ipc);
             sut.Respond<Request, Response>(r =>
             {
@@ -160,7 +161,7 @@ namespace heitech.zer0mqXt.core.tests
         public void Single_instance_of_RqRep_trying_to_setup_another_responder_on_same_instance_throws()
         {
             // Arrange
-            using var bus = ConfigurationTestData.BuildInprocSocketInstanceForTest("single-instance-rq-rep-pipe");
+            using var bus = ConfigurationTestData.BuildInProcSocketInstanceForTest("single-instance-rq-rep-pipe");
             bus.Respond<Request, Response>((r) => new Response());
 
             // Act
@@ -174,12 +175,11 @@ namespace heitech.zer0mqXt.core.tests
         public void Multiple_Socket_instances_and_multiple_responders_on_same_configuration_and_address_throws()
         {
             // Arrange
-            const string pipeName = "pipe-throws";
-            using var socket = ConfigurationTestData.BuildInprocSocketInstanceForTest(pipeName);
+            var socket = Zer0Mq.Go().SilenceLogger().BuildWithInProc("pipe-throws");
             socket.Respond<Request, Response>((r) => new Response { ResponseNumber = 1} );
 
             // Act
-            using var socket2 = ConfigurationTestData.BuildInprocSocketInstanceForTest(pipeName);
+            var socket2 = Zer0Mq.Go().SilenceLogger().BuildWithInProc("pipe-throws");
             Action throwingAction = () => socket2.Respond<Request, Response>((r) => new Response { ResponseNumber = 2} );
 
             // Assert
@@ -187,47 +187,31 @@ namespace heitech.zer0mqXt.core.tests
         }
 
         [Fact]
-        public async Task TryRequest_invokes_failureCallback_when_no_server_exists()
+        public async Task TryRequest_returns_false_and_invokes_the_failure_callback_when_no_server_exists()
         {
             // Arrange
-            using var socket = ConfigurationTestData.BuildInprocSocketInstanceForTest("try-request-pipe-failure");
-            bool isSuccess = false;
+            using var socket = ConfigurationTestData.BuildInProcSocketInstanceForTest("try-request-pipe");
+            bool successCalled = false;
+            bool failureCalled = false;
 
             // Act
-            await socket.TryRequestAsync<Request, Response>(new Request(),
-                successCallback: r => { isSuccess = true; return Task.CompletedTask; },
-                failureCallback: () => Task.CompletedTask
+            bool result = await socket.TryRequestAsync<Request, Response>(new Request(),
+                successCallback: r => { successCalled = true; return Task.CompletedTask; },
+                failureCallback: () => { failureCalled = true; return Task.CompletedTask; }
             );
 
             // Assert
-            Assert.False(isSuccess);
-        }
-
-        [Fact]
-        public async Task TryRequest_invokes_success_callback_when_a_server_exists()
-        {
-            // Arrange
-            const string pipeName = "try-request-pipe-success";
-            using var socket = ConfigurationTestData.BuildInprocSocketInstanceForTest(pipeName);
-            bool isSuccess = false;
-            socket.Respond<Request, Response>(r => new Response());
-
-            // Act
-            await socket.TryRequestAsync<Request, Response>(new Request(),
-                successCallback: r => { isSuccess = true; return Task.CompletedTask; },
-                failureCallback: () => Task.CompletedTask
-            );
-
-            // Assert
-            Assert.True(isSuccess);
+            Assert.False(successCalled);
+            Assert.True(failureCalled);
+            Assert.False(result);
         }
 
         [Fact]
         public void TryRespond_returns_false_when_a_server_already_exists()
         {
             // Arrange
-            using var socket = ConfigurationTestData.BuildInprocSocketInstanceForTest("inproc-try-methods-pipe-respond");
-            using var anotherSocket = ConfigurationTestData.BuildInprocSocketInstanceForTest("inproc-try-methods-pipe-respond");
+            using var socket = ConfigurationTestData.BuildInProcSocketInstanceForTest("inproc-try-methods-pipe-respond");
+            using var anotherSocket = ConfigurationTestData.BuildInProcSocketInstanceForTest("inproc-try-methods-pipe-respond");
             socket.Respond<Request, Response>(r => new Response());
 
             // Act
@@ -238,23 +222,10 @@ namespace heitech.zer0mqXt.core.tests
         }
 
         [Fact]
-        public void TryRespond_returns_true_when_a_server_does_not_exist_for_the_configuration()
-        {
-            // Arrange
-            using var socket = ConfigurationTestData.BuildInprocSocketInstanceForTest("inproc-try-methods-pipe-respond-success");
-
-            // Act
-            bool success = socket.TryRespond<Request, Response>((r) => new Response());
-
-            // Assert
-            Assert.True(success);
-        }
-
-        [Fact]
         public void TryRespond_on_same_socket_instance_still_throws()
         {
             // Arrange
-            using var socket = ConfigurationTestData.BuildInprocSocketInstanceForTest("inproc-try-methods-pipe-respond-same-socket");
+            using var socket = ConfigurationTestData.BuildInProcSocketInstanceForTest("inproc-try-methods-pipe-respond-same-socket");
             socket.Respond<Request, Response>(r => new Response());
 
             // Act
@@ -264,14 +235,10 @@ namespace heitech.zer0mqXt.core.tests
             Assert.Throws<ZeroMqXtSocketException>(a);
         }
 
-        
-
-
         public void Dispose()
         {
             SocketConfiguration.CleanUp();
         }
-
 
         private class Request { public int RequestNumber { get; set; } }
         private class Response { public int ResponseNumber { get; set; } }
