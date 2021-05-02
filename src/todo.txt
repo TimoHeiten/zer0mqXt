@@ -70,3 +70,8 @@ test for cancellationToken
 
 Implement BUS for all Kinds of Patterns (so the bus creates new instances in and of itself)
 multpile server on same ip / tcp address
+
+
+- multiple requests to a single server?
+- load balancing with router dealer?
+- testconnection method (is socket available as a server)
