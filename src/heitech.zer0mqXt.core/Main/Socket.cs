@@ -104,5 +104,57 @@ namespace heitech.zer0mqXt.core.Main
             if (xtResult.IsSuccess == false)
                 throw ZeroMqXtSocketException.FromException(xtResult.Exception);
         }
+
+         public async Task<bool> TryRequestAsync<TRequest, TResult>(TRequest request, Func<TResult, Task> successCallback, Func<Task> failureCallback)
+            where TRequest : class, new()
+            where TResult : class, new()
+        {
+            var xtResult = await _rqRep.RequestAsync<TRequest, TResult>(request);
+
+            if (xtResult.IsSuccess)
+                await successCallback(xtResult.GetResult());
+            else
+                await failureCallback();
+            
+            return xtResult.IsSuccess;
+        }
+
+        public bool TryRespond<TRequest, TResult>(Func<TRequest, TResult> callback, CancellationToken cancellationToken = default)
+            where TRequest : class, new()
+            where TResult : class, new()
+        {
+            var xtResult = _rqRep.Respond<TRequest, TResult>(callback, cancellationToken);
+
+            return xtResult.IsSuccess;
+
+        }
+
+        public bool TryRespondAsync<TRequest, TResult>(Func<TRequest, Task<TResult>> callback, CancellationToken cancellationToken = default)
+            where TRequest : class, new()
+            where TResult : class, new()
+        {
+            var xtResult = _rqRep.RespondAsync<TRequest, TResult>(callback, cancellationToken);
+
+            return xtResult.IsSuccess;
+        }
+
+        public async Task<bool> TrySendAsync<TMessage>(TMessage message) 
+            where TMessage : class, new()
+        {
+            var xtResult = await _sendReceive.SendAsync(message);
+            return xtResult.IsSuccess;
+        }
+
+        public bool TryReceive<TMessage>(Action<TMessage> callback, CancellationToken token = default) where TMessage : class, new()
+        {
+            var xtResult = _sendReceive.SetupReceiver(callback, token);
+            return xtResult.IsSuccess;
+        }
+
+        public bool TryReceiveasync<TMessage>(Func<TMessage, Task> asyncCallack, CancellationToken token = default) where TMessage : class, new()
+        {
+            var xtResult = _sendReceive.SetupReceiverAsync(asyncCallack, token);
+            return xtResult.IsSuccess;
+        }
     }
 }
