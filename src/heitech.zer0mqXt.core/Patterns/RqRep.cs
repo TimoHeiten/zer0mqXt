@@ -128,7 +128,7 @@ namespace heitech.zer0mqXt.core.patterns
             {
                 if (responderIsSetup)
                 {
-                    throw new ZeroMqXtSocketException("Responder for this instance of Socket exists. Use a new instance for each server");
+                    throw new ZeroMqXtSocketException("Responder for this instance of Socket exists already. Use a new instance for each server!");
                 }
                 responderIsSetup = true;
                 respondingIsActive = true;

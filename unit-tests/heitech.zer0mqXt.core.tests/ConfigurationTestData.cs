@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using heitech.zer0mqXt.core.infrastructure;
+using heitech.zer0mqXt.core.Main;
 
 namespace heitech.zer0mqXt.core.tests
 {
@@ -41,6 +42,15 @@ namespace heitech.zer0mqXt.core.tests
             yield return new object[] { tcp };
         }
 
+        internal static ISocket BuildInProcSocketInstanceForTest(string pipeName)
+            => Zer0Mq.Go().SilenceLogger().BuildWithInProc(pipeName);
+
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+
+        public static ISocket BuildInprocSocketInstanceForTest(string pipeName)
+        {
+            return Zer0Mq.Go().SilenceLogger().BuildWithInProc(pipeName);
+        }
     }
 }
