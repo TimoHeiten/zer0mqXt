@@ -46,7 +46,7 @@ namespace heitech.zer0mqXt.core.Main
         public void RegisterSubscriber<TMessage>(Action<TMessage> callback, CancellationToken cancellationToken = default)
             where TMessage : class, new()
         {
-            _pubSub.SubscribeHandler(callback, unsubscribeWhen: () => cancellationToken.IsCancellationRequested);
+            _pubSub.SubscribeHandler(callback, unsubscribeWhen: () => !cancellationToken.IsCancellationRequested);
         }
 
         public async Task<TResult> RequestAsync<TRequest, TResult>(TRequest request)

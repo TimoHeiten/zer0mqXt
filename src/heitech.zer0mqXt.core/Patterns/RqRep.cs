@@ -153,7 +153,6 @@ namespace heitech.zer0mqXt.core.patterns
                     receiveHandler = async (s, e) => await ResponseHandlerCallback(responseSocket, handler, token);
                     responseSocket.ReceiveReady += receiveHandler;
 
-                    // poller blocks, so it has to be started after the eventhandle is set
                     poller.RunAsync();
                 }
                 catch (Exception exception)
