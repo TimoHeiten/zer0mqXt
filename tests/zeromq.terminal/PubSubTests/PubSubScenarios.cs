@@ -41,14 +41,13 @@ namespace zeromq.terminal.PubSubTests
             using var cts = new CancellationTokenSource();
             var token = cts.Token;
             socket.RegisterSubscriber<PubSubMessage>(msg => System.Console.WriteLine("msg received: " + msg.Message), token);
-            // cts.Cancel();
+            cts.Cancel();
             System.Console.WriteLine("try multiple Publishes");
             foreach (var item in Enumerable.Range(0, 3))
             {
-                //todo Does not yet work without the console readline. A Poller is probably in order with receive ready function notifying of new Published messages
                 await socket.PublishAsync(new PubSubMessage { Message = "Published with cancellation"});
-                Console.ReadLine();
             }
+            System.Console.WriteLine("press any key to exit");
             Console.ReadLine();
             socket.Dispose();
         }

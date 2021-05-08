@@ -33,7 +33,7 @@ namespace zeromq.terminal
 
         static async Task Main(string[] args)
         {
-            string key = "subcancel";//args.First();
+            string key = "pubsub";//args.First();
             var actions = args.Where(x => _terminalActions.ContainsKey(x)).Select((x, index) => 
             {
                 var configuration = BuildConfig(args, index);
@@ -75,29 +75,5 @@ namespace zeromq.terminal
             System.Console.WriteLine($"Running scenario [{key}] with config [{configuration.GetType().Name}] at address [{configuration.Address()}]");
             await _terminalActions[key](configuration);
         }
-
-        private static async Task RunPubSub(SocketConfiguration configuration)
-        {
-            // it works only for InProc right now
-            using var pubSub = new PubSub(configuration);
-            await Task.Run(() => 
-            {
-                System.Console.WriteLine("setting up the subscriber");
-                pubSub.SubscribeHandler<Message>((m) => System.Console.WriteLine("message came in: " + m.Text));
-            });
-            
-            System.Console.WriteLine("now publishes");
-            var input = "";
-            while (input != "quit")
-            {
-                System.Console.WriteLine("publish next one");
-                var xt = await pubSub.PublishAsync(new Message() {Text = "published!"});
-                System.Console.WriteLine(xt);
-
-                input = Console.ReadLine();
-            }
-        }
-
-        private class Message { public string Text { get; set; } }
     }
 }
