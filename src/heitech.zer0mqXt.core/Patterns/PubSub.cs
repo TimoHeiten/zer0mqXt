@@ -17,7 +17,7 @@ namespace heitech.zer0mqXt.core.patterns
         private readonly List<IDisposable> _handlers = new List<IDisposable>();
         public PubSub(SocketConfiguration configuration)
         {
-            this._configuration = configuration;
+            _configuration = configuration;
         }
 
         #region Publishing
@@ -81,7 +81,7 @@ namespace heitech.zer0mqXt.core.patterns
             // handle notifies when the server is set up
             eventHandle = new ManualResetEvent(false);
 
-            var task = Task.Run(() => 
+            Task.Run(() => 
             {
                 var next = new SubscriberHandler<TMessage>
                 (
@@ -94,7 +94,6 @@ namespace heitech.zer0mqXt.core.patterns
                 );
 
                 var (success, exception) = next.Setup();
-                // open resetevent after using setup on the handler and after the poller has started asynchronously
                 // dispose handler when an exception was registered during setup
                 if (exception is not null) 
                 {
@@ -107,6 +106,7 @@ namespace heitech.zer0mqXt.core.patterns
                 {
                     _handlers.Add(next);
                 }
+                // open resetevent after using setup on the handler and after the poller has started asynchronously
                 eventHandle.Set();
             });
 
@@ -123,7 +123,7 @@ namespace heitech.zer0mqXt.core.patterns
             private readonly Action<TMessage> _syncCallback;
             private readonly Func<TMessage, Task> _asyncCallback;
             private readonly NetMQPoller _poller;
-            private readonly CancellationToken token;
+            private readonly CancellationToken _token;
             private readonly SubscriberSocket _socket;
             private readonly SocketConfiguration _configuration;
             private bool _disposedValue;
@@ -136,12 +136,12 @@ namespace heitech.zer0mqXt.core.patterns
                                        Action<TMessage> syncCallback = null,
                                        Func<TMessage, Task> asyncCallback = null)
             {
-                this.token = token;
-                this._poller = poller;
-                this._socket = subscriberSocket;
-                this._configuration = configuration;
-                this._syncCallback = syncCallback;
-                this._asyncCallback = asyncCallback;
+                _token = token;
+                _poller = poller;
+                _socket = subscriberSocket;
+                _configuration = configuration;
+                _syncCallback = syncCallback;
+                _asyncCallback = asyncCallback;
             }
 
             public (bool success, Exception ex) Setup()
@@ -152,9 +152,9 @@ namespace heitech.zer0mqXt.core.patterns
                     _socketDelegate = async (s, arg) => await HandleAsync();
                     _socket.ReceiveReady += _socketDelegate;
                     
+                    // todo use actual topics instead of catchall
                     string catchAllTopic = "";
                     _socket.Bind(_configuration.Address());
-                    // todo use actual topics instead of catchall
                     _socket.Subscribe(catchAllTopic);
                     _configuration.Logger.Log(new DebugLogMsg($"subscribed to [{typeof(TMessage)}]"));
                     _poller.Add(_socket);
@@ -172,7 +172,7 @@ namespace heitech.zer0mqXt.core.patterns
 
             public async Task HandleAsync()
             {
-                if (this.token.IsCancellationRequested)
+                if (_token.IsCancellationRequested)
                 {
                     Dispose();
                     _configuration.Logger.Log(new InfoLogMsg("SubscriberHandler was cancelled by cancellationRequest"));
