@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 using heitech.zer0mqXt.core.infrastructure;
@@ -39,14 +40,15 @@ namespace heitech.zer0mqXt.core.Main
         public void RegisterAsyncSubscriber<TMessage>(Func<TMessage, Task> asyncCallback, CancellationToken cancellationToken = default)
             where TMessage : class, new()
         {
-            // todo should not return a task...also does not use token yet
-            _pubSub.SubscribeAsyncHandler(asyncCallback).Wait();
+            var result = _pubSub.SubscribeHandlerAsync(asyncCallback, cancellationToken);
+            ThrowOnNonSuccess(result);
         }
 
         public void RegisterSubscriber<TMessage>(Action<TMessage> callback, CancellationToken cancellationToken = default)
             where TMessage : class, new()
         {
-            _pubSub.SubscribeHandler(callback, unsubscribeWhen: () => cancellationToken.IsCancellationRequested);
+            var result = _pubSub.SubscribeHandler(callback, cancellationToken);
+            ThrowOnNonSuccess(result);
         }
 
         public async Task<TResult> RequestAsync<TRequest, TResult>(TRequest request)
