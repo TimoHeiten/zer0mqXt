@@ -142,7 +142,7 @@ namespace heitech.zer0mqXt.core.patterns
             // create a new background thread with the response callback
             
             Exception faultingException = null;
-            Task.Run(() => 
+            _ = Task.Run(() => 
             {
                 try
                 {

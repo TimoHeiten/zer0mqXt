@@ -81,7 +81,7 @@ namespace heitech.zer0mqXt.core.patterns
             // handle notifies when the server is set up
             eventHandle = new ManualResetEvent(false);
 
-            Task.Run(() => 
+            _ = Task.Run(() => 
             {
                 var next = new SubscriberHandler<TMessage>
                 (
@@ -210,7 +210,7 @@ namespace heitech.zer0mqXt.core.patterns
                         if (_poller != null && _poller.IsRunning)
                             _poller.Stop();
                         else 
-                            _socket.Dispose();
+                            _socket?.Dispose();
 
                         if (_socket != null && _socketDelegate != null)
                             _socket.ReceiveReady -= _socketDelegate;

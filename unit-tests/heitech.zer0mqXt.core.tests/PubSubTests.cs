@@ -47,18 +47,9 @@ namespace heitech.zer0mqXt.core.tests
             Func<Task> pub = async () => await sut.PublishAsync<Message>(new Message());
 
             // Assert
-            bool noException = false;
-            try
-            {
-                await pub();
-                noException = true;
-            }
-            catch (System.Exception)
-            {
-                noException = false;
-            }
+            await pub();
             sut.Dispose();
-            Assert.True(noException);
+            // no assert as no exception is expected otherwiese the test would fail at the call to the function pub()
         }
 
         [Fact]
