@@ -23,13 +23,15 @@ namespace heitech.zer0mqXt.core.tests
             config.Logger.SetSilent();
             var sut = new PubSub(config);
 
-            var xtResult = sut.SubscribeHandler<Message>(callback: m => incoming = m, CancellationToken.None);
+            var waitHandle = new ManualResetEvent(false);
+
+            var xtResult = sut.SubscribeHandler<Message>(callback: m => { incoming = m; waitHandle.Set(); } , CancellationToken.None);
 
             // Act
             await sut.PublishAsync<Message>(message);
 
             // Assert
-            await Task.Delay(500);
+            waitHandle.WaitOne();
             Assert.NotNull(incoming);
             Assert.True(xtResult.IsSuccess);
             Assert.Equal(message.Array, incoming.Array);
