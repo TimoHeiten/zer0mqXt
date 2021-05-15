@@ -158,5 +158,12 @@ namespace heitech.zer0mqXt.core.Main
             var xtResult = _sendReceive.SetupReceiverAsync(asyncCallack, token);
             return xtResult.IsSuccess;
         }
+
+        public async Task<bool> TryPublishAsync<TMessage>(TMessage message) 
+            where TMessage : class, new()
+        {
+            var result = await _pubSub.PublishAsync<TMessage>(message);
+            return result.IsSuccess;
+        }
     }
 }

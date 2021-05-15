@@ -58,7 +58,7 @@ namespace heitech.zer0mqXt.core.tests
         public async Task Subscriber_Cancellation_works()
         {
             // Arrange
-            var socket = Zer0Mq.Go().BuildWithInProc(Guid.NewGuid().ToString() + "-Subscriber-cancellation");
+            var socket = Zer0Mq.Go().SilenceLogger().BuildWithInProc(Guid.NewGuid().ToString() + "-Subscriber-cancellation");
             bool wasReceived = false;
             var tokenSource = new CancellationTokenSource();
             var token = tokenSource.Token;
@@ -97,6 +97,20 @@ namespace heitech.zer0mqXt.core.tests
             // Assert.NotNull(incoming);
             // Assert.Equal(message.Array, incoming.Array);
             // Assert.Equal(message.ThisIsAPublishedMessageText, incoming.ThisIsAPublishedMessageText);
+        }
+
+
+        [Fact]
+        public async Task TryPublish_returns_false_if_it_cannot_publish()
+        {
+            // Arrange
+            var socket = Zer0Mq.Go().BuildWithInProc("try-pubish");
+            
+            // Act
+            bool published = await socket.TryPublishAsync(new Message());
+
+            // Assert
+            Assert.False(published);
         }
 
         public class Message 
