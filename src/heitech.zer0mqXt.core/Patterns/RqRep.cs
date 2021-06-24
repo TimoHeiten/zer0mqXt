@@ -24,15 +24,15 @@ namespace heitech.zer0mqXt.core.patterns
         {
             try
             {
-                return await DoRequestAsync<T, TResult>(request);
+                return await DoRequestAsync<T, TResult>(request).ConfigureAwait(false);
             }
             catch (NetMQ.EndpointNotFoundException ntfnd)
             {
                 _configuration.Logger.Log(new ErrorLogMsg($"NetMQ.Endpoint could not be found at {_configuration.Address()}: " + ntfnd.Message));
-                await Task.Delay((int)_configuration.TimeOut.TotalMilliseconds);
+                await Task.Delay((int)_configuration.TimeOut.TotalMilliseconds).ConfigureAwait(false);
                 try
                 {
-                    return await DoRequestAsync<T, TResult>(request);
+                    return await DoRequestAsync<T, TResult>(request).ConfigureAwait(false);
                 }
                 catch (System.Exception inner)
                 {
@@ -81,7 +81,7 @@ namespace heitech.zer0mqXt.core.patterns
                 return xtResult.IsSuccess
                         ? XtResult<TResult>.Success(xtResult.GetResult(), operation)
                         : XtResult<TResult>.Failed(xtResult.Exception, operation);
-            });
+            }).ConfigureAwait(false);
         }
         #endregion
 
@@ -150,7 +150,7 @@ namespace heitech.zer0mqXt.core.patterns
 
                     // add to poller and register handler
                     poller.Add(responseSocket);
-                    receiveHandler = async (s, e) => await ResponseHandlerCallback(responseSocket, handler, token);
+                    receiveHandler = async (s, e) => await ResponseHandlerCallback(responseSocket, handler, token).ConfigureAwait(false);
                     responseSocket.ReceiveReady += receiveHandler;
 
                     poller.RunAsync();
@@ -203,7 +203,7 @@ namespace heitech.zer0mqXt.core.patterns
                 if (asyncCallback is null)
                     return syncCallback(request);
                 else
-                    return await asyncCallback(request);
+                    return await asyncCallback(request).ConfigureAwait(false);
             }
         }
 
@@ -231,7 +231,7 @@ namespace heitech.zer0mqXt.core.patterns
                     _configuration.Logger.Log(new DebugLogMsg($"handling response for [Request:{typeof(T)}] and [Response:{typeof(TResult)}]"));
 
                     var actualRequestResult = incomingRequest.ParseRqRepMessage<T>(_configuration);
-                    TResult result = await handler.HandleAsync(actualRequestResult);
+                    TResult result = await handler.HandleAsync(actualRequestResult).ConfigureAwait(false);
 
                     response = new RequestReplyMessage<TResult>(_configuration, result, actualRequestResult.IsSuccess);
                     _configuration.Logger.Log(new DebugLogMsg($"sending response for [Request:{typeof(T)}] and [Response:{typeof(TResult)}]"));
