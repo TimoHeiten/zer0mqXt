@@ -42,7 +42,7 @@ namespace heitech.zer0mqXt.core.patterns
                     }
 
                     return XtResult<TMessage>.Success(message, "publish");
-                });
+                }).ConfigureAwait(false);
                 
             }
             catch (System.Exception ex)
@@ -149,7 +149,7 @@ namespace heitech.zer0mqXt.core.patterns
                 Exception exception = null;
                 try
                 {
-                    _socketDelegate = async (s, arg) => await HandleAsync();
+                    _socketDelegate = async (s, arg) => await HandleAsync().ConfigureAwait(false);
                     _socket.ReceiveReady += _socketDelegate;
                     
                     // todo use actual topics instead of catchall
@@ -189,7 +189,7 @@ namespace heitech.zer0mqXt.core.patterns
                     if (this._asyncCallback is null)
                         _syncCallback(msg);
                     else
-                        await _asyncCallback(msg);
+                        await _asyncCallback(msg).ConfigureAwait(false);
                 }
                 catch (NetMQ.TerminatingException trmnt)
                 {
