@@ -22,6 +22,7 @@ namespace heitech.zer0mqXt.core.tests
             SocketConfiguration config = new ConfigurationTestData().GetSocketConfigInProc;
             config.Logger.SetSilent();
             var sut = new PubSub(config);
+            sut.PrimePublisher();
 
             var waitHandle = new ManualResetEvent(false);
 
@@ -40,16 +41,16 @@ namespace heitech.zer0mqXt.core.tests
         }
 
         [Fact]
-        public async Task Publish_without_server_throws()
+        public void Publish_without_bind_from_publisher_is_not_successfull()
         {
             var config = new ConfigurationTestData().GetSocketConfigInProc;
             var sut = new PubSub(config);
 
             // Act
-            Func<Task> pub = async () => await sut.PublishAsync<Message>(new Message());
+            XtResult result = sut.SubscribeHandlerAsync<Message>(async m => await Task.CompletedTask, CancellationToken.None);
 
             // Assert
-            await pub();
+            Assert.False(result.IsSuccess);
             sut.Dispose();
             // no assert as no exception is expected otherwiese the test would fail at the call to the function pub()
         }
@@ -58,7 +59,7 @@ namespace heitech.zer0mqXt.core.tests
         public async Task Subscriber_Cancellation_works()
         {
             // Arrange
-            var socket = Zer0Mq.Go().BuildWithInProc(Guid.NewGuid().ToString() + "-Subscriber-cancellation");
+            var socket = Zer0Mq.Go().UsePublisher().BuildWithInProc(Guid.NewGuid().ToString() + "-Subscriber-cancellation");
             bool wasReceived = false;
             var tokenSource = new CancellationTokenSource();
             var token = tokenSource.Token;
@@ -97,6 +98,28 @@ namespace heitech.zer0mqXt.core.tests
             // Assert.NotNull(incoming);
             // Assert.Equal(message.Array, incoming.Array);
             // Assert.Equal(message.ThisIsAPublishedMessageText, incoming.ThisIsAPublishedMessageText);
+        }
+
+        [Fact]
+        public async Task Multiple_Subscriber_on_Single_Publisher()
+        {
+            // Arrange
+            // 3 subs
+            int counter = 0;
+            var socket = Zer0Mq.Go().UsePublisher().BuildWithInProc("multiple-subscribers-one-publisher");
+            Action<Message> subAction = m => counter++;
+            var waitHandle = new ManualResetEvent(false);
+            socket.RegisterSubscriber(subAction);
+            socket.RegisterSubscriber(subAction);
+            socket.RegisterSubscriber<Message>(m => { subAction(m); waitHandle.Set(); });
+            
+            // Act
+            await socket.PublishAsync(new Message());
+            
+            // Assert
+            waitHandle.WaitOne();
+            Assert.Equal(3, counter);
+            
         }
 
         public class Message 

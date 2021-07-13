@@ -20,21 +20,41 @@ namespace heitech.zer0mqXt.core.patterns
             _configuration = configuration;
         }
 
+        private PublisherSocket _publisherSocket;
+
+        internal void PrimePublisher()
+        {
+            try
+            {
+                _publisherSocket = new PublisherSocket();
+                _publisherSocket.Bind(_configuration.Address());
+            }
+            catch (System.Exception ex)
+            {
+                _configuration.Logger.Log(new ErrorLogMsg(ex.Message));
+                throw;
+            }
+
+        }
+
         #region Publishing
         public async Task<XtResult<TMessage>> PublishAsync<TMessage>(TMessage message)
             where TMessage : class, new()
         {
-            PublisherSocket publisherSocket = null;
+            if (_publisherSocket == null)
+            {
+                _configuration.Logger.Log(new ErrorLogMsg("publisherSocket was not primed (setup connection via NetMQ.Bind). When creating a Zer0MQ Bus, make sure to build it with UsePublisher."));
+                throw new NetMQException("publisherSocket was not primed (setup connection via NetMQ.Bind). When creating a Zer0MQ Bus, make sure to build it with UsePublisher.");
+            }
+
             try
             {
-                publisherSocket = new PublisherSocket();
-                publisherSocket.Connect(_configuration.Address());
                 return await Task.Run(() => 
                 {
                     try
                     {
                         var msg = new PubSubMessage<TMessage>(_configuration, message);
-                        publisherSocket.SendMultipartMessage(msg);
+                        _publisherSocket.SendMultipartMessage(msg);
                     }
                     catch (System.Exception ex)
                     {
@@ -51,7 +71,7 @@ namespace heitech.zer0mqXt.core.patterns
             }
             finally
             {
-                publisherSocket?.Dispose();
+                _publisherSocket?.Dispose();
             }
         }
         #endregion
@@ -93,15 +113,17 @@ namespace heitech.zer0mqXt.core.patterns
                     asyncCallback: asyncCallback
                 );
 
-                var (success, exception) = next.Setup();
+                var (success, ex2) = next.Setup();
+                exception = ex2;
                 // dispose handler when an exception was registered during setup
                 if (exception is not null) 
                 {
-                    next.Dispose(); 
+                    next.Dispose();
+                    eventHandle.Set();
                     return;
                 }
 
-                // add subscriber to dispsables to get rid of them later
+                // add subscriber to handlers to get rid of them later
                 lock (_concurrencyToken)
                 {
                     _handlers.Add(next);
@@ -146,7 +168,6 @@ namespace heitech.zer0mqXt.core.patterns
 
             public (bool success, Exception ex) Setup()
             {
-                Exception exception = null;
                 try
                 {
                     _socketDelegate = async (s, arg) => await HandleAsync();
@@ -154,7 +175,7 @@ namespace heitech.zer0mqXt.core.patterns
                     
                     // todo use actual topics instead of catchall
                     string catchAllTopic = "";
-                    _socket.Bind(_configuration.Address());
+                    _socket.Connect(_configuration.Address());
                     _socket.Subscribe(catchAllTopic);
                     _configuration.Logger.Log(new DebugLogMsg($"subscribed to [{typeof(TMessage)}]"));
                     _poller.Add(_socket);
@@ -162,11 +183,10 @@ namespace heitech.zer0mqXt.core.patterns
 
                     return (true, null);
                 }
-                catch (NetMQ.EndpointNotFoundException ntfnd)
+                catch (Exception ex)
                 {
-                    _configuration.Logger.Log(new ErrorLogMsg(ntfnd.Message));
-                    exception = ntfnd;
-                    return (false, exception);
+                    _configuration.Logger.Log(new ErrorLogMsg(ex.Message));
+                    return (false, ex);
                 }
             }
 

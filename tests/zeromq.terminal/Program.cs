@@ -3,7 +3,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using System;
 using heitech.zer0mqXt.core.infrastructure;
-using heitech.zer0mqXt.core.patterns;
 using zeromq.terminal.RqRepTests;
 using zeromq.terminal.PubSubTests;
 
@@ -28,12 +27,24 @@ namespace zeromq.terminal
 
                 ["pubsub"] = PubSubScenarios.SimplePubSub,
                 ["subcancel"] = PubSubScenarios.PubSubWithCancellation,
+
+                [DESCRIBE] = Describe
             };
+        }
+
+        const string DESCRIBE = "describe";
+        static Task Describe(SocketConfiguration _)
+        {
+            System.Console.WriteLine("Use one of the following keys as cmd param to test different scenarios:");
+            string keys = string.Join(Environment.NewLine, _terminalActions.Keys.Where(x => x != DESCRIBE).Select((name, index) => $"{++index}\t{name}"));
+            System.Console.WriteLine(keys);
+
+            return Task.CompletedTask;
         }
 
         static async Task Main(string[] args)
         {
-            string key = args.First();
+            string key = args.FirstOrDefault() ?? DESCRIBE;
             var actions = args.Where(x => _terminalActions.ContainsKey(x)).Select((x, index) => 
             {
                 var configuration = BuildConfig(args, index);

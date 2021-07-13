@@ -16,11 +16,11 @@ namespace zeromq.terminal.PubSubTests
             if (configuration is SocketConfiguration.Tcp tcp)
             {
                 string port = tcp.Address().Split(":").Last();
-                return Zer0Mq.Go().BuildWithTcp("localhost", port);
+                return Zer0Mq.Go().UsePublisher().BuildWithTcp("localhost", port);
             }
             else
             {
-                return Zer0Mq.Go().BuildWithInProc(configuration.Address().Split("//").Last());
+                return Zer0Mq.Go().UsePublisher().BuildWithInProc(configuration.Address().Split("//").Last());
             }
         }
 
@@ -30,6 +30,7 @@ namespace zeromq.terminal.PubSubTests
             socket.RegisterSubscriber<PubSubMessage>(msg => System.Console.WriteLine("msg received: " + msg.Message));
             await socket.PublishAsync(new PubSubMessage { Message = "Published simply"});
 
+            System.Console.WriteLine("press any enter to exit");
             Console.ReadLine();
 
             socket.Dispose();
@@ -47,7 +48,7 @@ namespace zeromq.terminal.PubSubTests
             {
                 await socket.PublishAsync(new PubSubMessage { Message = "Published with cancellation"});
             }
-            System.Console.WriteLine("press any key to exit");
+            System.Console.WriteLine("press enter to exit");
             Console.ReadLine();
             socket.Dispose();
         }

@@ -44,9 +44,9 @@ namespace heitech.zer0mqXt.core.transport
             const string operation = "parse-pub-sub-msg";
             if (msg.FrameCount != 2)
             {
-                var exc = ZeroMqXtSocketException.MissedExpectedFrameCount(msg.FrameCount);
+                var exc = ZeroMqXtSocketException.MissedExpectedFrameCount(msg.FrameCount, expectedCount: 2);
                 configuration.Logger.Log(new DebugLogMsg(exc.Message));
-                return XtResult<TMessage>.Failed(ZeroMqXtSocketException.MissedExpectedFrameCount(msg.FrameCount, 2));
+                return XtResult<TMessage>.Failed(ZeroMqXtSocketException.MissedExpectedFrameCount(msg.FrameCount, expectedCount: 2));
             }
             
             var receivedType = configuration.Serializer.Deserialize<string>(msg.First.ToByteArray());
