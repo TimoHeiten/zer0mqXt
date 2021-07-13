@@ -59,7 +59,7 @@ namespace heitech.zer0mqXt.core.tests
         public async Task Subscriber_Cancellation_works()
         {
             // Arrange
-            var socket = Zer0Mq.Go().UsePublisher().BuildWithInProc(Guid.NewGuid().ToString() + "-Subscriber-cancellation");
+            var socket = Zer0Mq.Go().SilenceLogger().UsePublisher().BuildWithInProc(Guid.NewGuid().ToString() + "-Subscriber-cancellation");
             bool wasReceived = false;
             var tokenSource = new CancellationTokenSource();
             var token = tokenSource.Token;
@@ -119,7 +119,6 @@ namespace heitech.zer0mqXt.core.tests
             // Assert
             waitHandle.WaitOne();
             Assert.Equal(3, counter);
-            
         }
 
         public class Message 

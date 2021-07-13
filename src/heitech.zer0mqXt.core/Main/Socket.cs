@@ -39,7 +39,7 @@ namespace heitech.zer0mqXt.core.Main
         public async Task PublishAsync<TMessage>(TMessage message) 
             where TMessage : class, new()
         {
-            var xtResult = await _pubSub.PublishAsync(message);
+            var xtResult = await _pubSub.PublishAsync(message).ConfigureAwait(false);
 
             ThrowOnNonSuccess(xtResult);
         }
@@ -62,7 +62,7 @@ namespace heitech.zer0mqXt.core.Main
             where TRequest : class, new()
             where TResult : class, new()
         {
-            var xtResult = await _rqRep.RequestAsync<TRequest, TResult>(request);
+            var xtResult = await _rqRep.RequestAsync<TRequest, TResult>(request).ConfigureAwait(false);
             ThrowOnNonSuccess(xtResult);
 
             return xtResult.GetResult();
@@ -87,7 +87,7 @@ namespace heitech.zer0mqXt.core.Main
         public async Task SendAsync<TMessage>(TMessage message) 
             where TMessage : class, new()
         {
-            var xtResult = await _sendReceive.SendAsync(message);
+            var xtResult = await _sendReceive.SendAsync(message).ConfigureAwait(false);
 
             ThrowOnNonSuccess(xtResult);
         }
@@ -118,12 +118,12 @@ namespace heitech.zer0mqXt.core.Main
             where TRequest : class, new()
             where TResult : class, new()
         {
-            var xtResult = await _rqRep.RequestAsync<TRequest, TResult>(request);
+            var xtResult = await _rqRep.RequestAsync<TRequest, TResult>(request).ConfigureAwait(false);
 
             if (xtResult.IsSuccess)
-                await successCallback(xtResult.GetResult());
+                await successCallback(xtResult.GetResult()).ConfigureAwait(false);
             else
-                await failureCallback();
+                await failureCallback().ConfigureAwait(false);
             
             return xtResult.IsSuccess;
         }
@@ -150,7 +150,7 @@ namespace heitech.zer0mqXt.core.Main
         public async Task<bool> TrySendAsync<TMessage>(TMessage message) 
             where TMessage : class, new()
         {
-            var xtResult = await _sendReceive.SendAsync(message);
+            var xtResult = await _sendReceive.SendAsync(message).ConfigureAwait(false);
             return xtResult.IsSuccess;
         }
 
