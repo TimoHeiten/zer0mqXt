@@ -28,15 +28,15 @@ namespace zeromq.terminal
                 ["pubsub"] = PubSubScenarios.SimplePubSub,
                 ["subcancel"] = PubSubScenarios.PubSubWithCancellation,
 
-                [DESCRIBE] = Describe
+                [HELP] = ShowHelp
             };
         }
 
-        const string DESCRIBE = "describe";
-        static Task Describe(SocketConfiguration _)
+        const string HELP = "help";
+        static Task ShowHelp(SocketConfiguration _)
         {
             System.Console.WriteLine("Use one of the following keys as cmd param to test different scenarios:");
-            string keys = string.Join(Environment.NewLine, _terminalActions.Keys.Where(x => x != DESCRIBE).Select((name, index) => $"{++index}\t{name}"));
+            string keys = string.Join(Environment.NewLine, _terminalActions.Keys.Where(x => x != HELP).Select((name, index) => $"{++index}\t{name}"));
             System.Console.WriteLine(keys);
 
             return Task.CompletedTask;
@@ -44,7 +44,7 @@ namespace zeromq.terminal
 
         static async Task Main(string[] args)
         {
-            string key = args.FirstOrDefault() ?? DESCRIBE;
+            string key = args.FirstOrDefault() ?? HELP;
             var actions = args.Where(x => _terminalActions.ContainsKey(x)).Select((x, index) => 
             {
                 var configuration = BuildConfig(args, index);

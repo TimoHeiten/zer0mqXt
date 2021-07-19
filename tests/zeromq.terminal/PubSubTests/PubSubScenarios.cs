@@ -30,7 +30,7 @@ namespace zeromq.terminal.PubSubTests
             socket.RegisterSubscriber<PubSubMessage>(msg => System.Console.WriteLine("msg received: " + msg.Message));
             await socket.PublishAsync(new PubSubMessage { Message = "Published simply"});
 
-            System.Console.WriteLine("press any enter to exit");
+            System.Console.WriteLine("press enter to exit");
             Console.ReadLine();
 
             socket.Dispose();
