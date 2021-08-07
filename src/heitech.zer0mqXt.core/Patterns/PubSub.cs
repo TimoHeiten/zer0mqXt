@@ -20,38 +20,60 @@ namespace heitech.zer0mqXt.core.patterns
             _configuration = configuration;
         }
 
+        private PublisherSocket _publisherSocket;
+
+        internal void PrimePublisher()
+        {
+            try
+            {
+                _publisherSocket = new PublisherSocket();
+                _publisherSocket.Bind(_configuration.Address());
+            }
+            catch (Exception ex)
+            {
+                _configuration.Logger.Log(new ErrorLogMsg(ex.Message));
+                throw;
+            }
+        }
+
+
         #region Publishing
         public async Task<XtResult<TMessage>> PublishAsync<TMessage>(TMessage message)
             where TMessage : class, new()
         {
-            PublisherSocket publisherSocket = null;
+            const string operationName = "publish";
+            if (_publisherSocket == null)
+            {
+                const string errorMsg = "publisherSocket was not primed (setup connection via NetMQ.Bind). When creating a Zer0MQ Bus, make sure to build it with UsePublisher.";
+                _configuration.Logger.Log(new ErrorLogMsg(errorMsg));
+                throw new NetMQException(errorMsg);
+            }
+
             try
             {
-                publisherSocket = new PublisherSocket();
-                publisherSocket.Connect(_configuration.Address());
                 return await Task.Run(() => 
                 {
                     try
                     {
                         var msg = new PubSubMessage<TMessage>(_configuration, message);
-                        publisherSocket.SendMultipartMessage(msg);
+                        _publisherSocket.SendMultipartMessage(msg);
                     }
-                    catch (System.Exception ex)
+                    catch (Exception ex)
                     {
-                        return XtResult<TMessage>.Failed(ex, "publish");
+                        return XtResult<TMessage>.Failed(ex, operationName);
                     }
 
-                    return XtResult<TMessage>.Success(message, "publish");
+                    return XtResult<TMessage>.Success(message, operationName);
                 }).ConfigureAwait(false);
                 
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                return XtResult<TMessage>.Failed(ex, "publish");
+                return XtResult<TMessage>.Failed(ex, operationName);
             }
             finally
             {
-                publisherSocket?.Dispose();
+                _publisherSocket?.Dispose();
             }
         }
         #endregion
@@ -77,7 +99,7 @@ namespace heitech.zer0mqXt.core.patterns
         private XtResult RegisterHandler<TMessage>(Action<TMessage> syncCallback = null, Func<TMessage, Task> asyncCallback = null, CancellationToken token = default)
             where TMessage : class, new()
         {
-            Exception exception = null;
+            Exception handlerException = null;
             // handle notifies when the server is set up
             eventHandle = new ManualResetEvent(false);
 
@@ -93,15 +115,17 @@ namespace heitech.zer0mqXt.core.patterns
                     asyncCallback: asyncCallback
                 );
 
-                var (success, exception) = next.Setup();
+                var (success, resultingException) = next.Setup();
+                handlerException = resultingException;
                 // dispose handler when an exception was registered during setup
-                if (exception is not null) 
+                if (handlerException is not null) 
                 {
-                    next.Dispose(); 
+                    next.Dispose();
+                    eventHandle.Set();
                     return;
                 }
 
-                // add subscriber to dispsables to get rid of them later
+                // add subscriber to handlers to get rid of them later
                 lock (_concurrencyToken)
                 {
                     _handlers.Add(next);
@@ -111,8 +135,8 @@ namespace heitech.zer0mqXt.core.patterns
             });
 
             eventHandle.WaitOne();
-            if (exception is not null)
-                return XtResult.Failed(exception, "register-subscriber");
+            if (handlerException is not null)
+                return XtResult.Failed(handlerException, "register-subscriber");
 
             return XtResult.Success("register-subscriber");
         }
@@ -146,7 +170,6 @@ namespace heitech.zer0mqXt.core.patterns
 
             public (bool success, Exception ex) Setup()
             {
-                Exception exception = null;
                 try
                 {
                     _socketDelegate = async (s, arg) => await HandleAsync().ConfigureAwait(false);
@@ -154,7 +177,7 @@ namespace heitech.zer0mqXt.core.patterns
                     
                     // todo use actual topics instead of catchall
                     string catchAllTopic = "";
-                    _socket.Bind(_configuration.Address());
+                    _socket.Connect(_configuration.Address());
                     _socket.Subscribe(catchAllTopic);
                     _configuration.Logger.Log(new DebugLogMsg($"subscribed to [{typeof(TMessage)}]"));
                     _poller.Add(_socket);
@@ -162,11 +185,10 @@ namespace heitech.zer0mqXt.core.patterns
 
                     return (true, null);
                 }
-                catch (NetMQ.EndpointNotFoundException ntfnd)
+                catch (Exception ex)
                 {
-                    _configuration.Logger.Log(new ErrorLogMsg(ntfnd.Message));
-                    exception = ntfnd;
-                    return (false, exception);
+                    _configuration.Logger.Log(new ErrorLogMsg(ex.Message));
+                    return (false, ex);
                 }
             }
 

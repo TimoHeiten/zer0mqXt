@@ -29,6 +29,13 @@ namespace heitech.zer0mqXt.core.Main
             _sendReceive.Dispose();
         }
 
+        // we need to use Bind for a publisher so Subscribers can connect to it
+        // this is due to the mechanisms integral to Zer0Mq itself
+        internal void PrimePublisher()
+        {
+            _pubSub.PrimePublisher();
+        }
+
         public async Task PublishAsync<TMessage>(TMessage message) 
             where TMessage : class, new()
         {
@@ -157,13 +164,6 @@ namespace heitech.zer0mqXt.core.Main
         {
             var xtResult = _sendReceive.SetupReceiverAsync(asyncCallack, token);
             return xtResult.IsSuccess;
-        }
-
-        public async Task<bool> TryPublishAsync<TMessage>(TMessage message) 
-            where TMessage : class, new()
-        {
-            var result = await _pubSub.PublishAsync<TMessage>(message).ConfigureAwait(false);
-            return result.IsSuccess;
         }
     }
 }

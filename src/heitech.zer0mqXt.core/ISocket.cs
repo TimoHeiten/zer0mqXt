@@ -69,9 +69,6 @@ namespace heitech.zer0mqXt.core
         void RegisterAsyncSubscriber<TMessage>(Func<TMessage, Task> asyncCallback, CancellationToken cancellationToken = default)
             where TMessage : class, new();
 
-        Task<bool> TryPublishAsync<TMessage>(TMessage message)
-            where TMessage : class, new();
-
         Task<bool> TrySendAsync<TMessage>(TMessage message)
             where TMessage : class, new();
 

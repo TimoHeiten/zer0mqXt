@@ -83,7 +83,7 @@ namespace zeromq.terminal.RqRepTests
             socket.Respond<Request, Response>((r) => new Response());
 
             var response = await socket.RequestAsync<Request, Response>(new Request());
-            System.Console.WriteLine(response.InsideResponse);
+            System.Console.WriteLine(response.InsideResponse + " works");
         }
 
         internal static Task Contest(SocketConfiguration _)
