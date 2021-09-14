@@ -21,8 +21,10 @@ namespace heitech.zer0mqXt.core.infrastructure
             Logger = new BasicLogger();
 
             var adapter = new InternalAdapter();
-            Serializer = adapter;
             Encoding = adapter.Encoding;
+            Serializer = adapter;
+
+            RetryIsActive = true;
             TimeOut = TimeSpan.FromSeconds(5);
         }
 
@@ -32,9 +34,11 @@ namespace heitech.zer0mqXt.core.infrastructure
         public Encoding Encoding { get; set; } 
 
         ///<summary>
-        /// Default Timeout is 15 seconds
+        /// Default Timeout is 5 seconds
         ///</summary>
         public TimeSpan TimeOut { get; set; }
+
+        public bool RetryIsActive { get; set; }
 
         public static Inproc InprocConfig(string name) => new Inproc(name);
         public static Tcp TcpConfig(string port) => new Tcp(port);

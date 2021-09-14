@@ -51,7 +51,7 @@ namespace heitech.zer0mqXt.core.transport
             
             var receivedType = configuration.Serializer.Deserialize<string>(msg.First.ToByteArray());
             if (receivedType != typeof(TMessage).FullName)
-                return XtResult<TMessage>.Failed(ZeroMqXtSocketException.Frame1TypeDoesNotMatch<TMessage>(receivedType));
+                return XtResult<TMessage>.Failed(ZeroMqXtSocketException.Frame1TypeDoesNotMatch<TMessage>(receivedType), operation);
 
             try
             {

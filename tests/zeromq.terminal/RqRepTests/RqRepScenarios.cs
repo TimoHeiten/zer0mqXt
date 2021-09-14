@@ -29,8 +29,9 @@ namespace zeromq.terminal.RqRepTests
             SetupResponder(socket, token: token);
             cts.Cancel();
 
-            // the first one will always come through, no matter what
-            System.Console.WriteLine("try multiple requests");
+            System.Console.WriteLine("".PadRight(50, '-'));
+            System.Console.WriteLine("try 3 requests - expect 3 failures since there is no server left by now");
+            System.Console.WriteLine("".PadRight(50, '-'));
             foreach (var item in Enumerable.Range(0, 3))
             {
                 await RequestAndWriteResultAsync(socket);
@@ -97,7 +98,7 @@ namespace zeromq.terminal.RqRepTests
             }
             catch (ZeroMqXtSocketException socketException)
             {
-                System.Console.WriteLine("expected exception was thrown: " + socketException.ToString());
+                System.Console.WriteLine("!!!EXPECTED!!! exception was thrown: " + socketException.ToString());
                 return Task.CompletedTask;
             }
 

@@ -1,12 +1,11 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using heitech.zer0mqXt.core.infrastructure;
 using heitech.zer0mqXt.core.Main;
 using heitech.zer0mqXt.core.patterns;
 using Xunit;
-
-using static heitech.zer0mqXt.core.tests.ConfigurationTestData;
 
 namespace heitech.zer0mqXt.core.tests
 {
@@ -25,7 +24,6 @@ namespace heitech.zer0mqXt.core.tests
             sut.PrimePublisher();
 
             var waitHandle = new ManualResetEvent(false);
-
             var xtResult = sut.SubscribeHandler<Message>(callback: m => { incoming = m; waitHandle.Set(); } , CancellationToken.None);
 
             // Act
@@ -72,6 +70,29 @@ namespace heitech.zer0mqXt.core.tests
             // Assert
             Assert.False(wasReceived);
             
+        }
+
+        [Fact]
+        public async Task PubSub_with_retry_works()
+        {
+            // Arrange
+            Message capturedResponse = null;
+            using var socket = ConfigurationTestData.BuildInProcSocketInstanceForTest("retry-socket", timeoutInMs: 500, usePblshr: true);
+            var waitHandle = new ManualResetEvent(false);
+            // request in background thread
+            socket.RegisterSubscriber<Message>(msg => { capturedResponse = msg; waitHandle.Set();});
+            // wait a second for retry
+            Thread.Sleep(250);
+
+            // Act
+            // setup server and wait for retry to work
+            await socket.PublishAsync(new Message { ThisIsAPublishedMessageText = "published-message" });
+
+            // Assert
+            Thread.Sleep(1500);
+            waitHandle.WaitOne();
+            Assert.NotNull(capturedResponse);
+            Assert.Equal("published-message", capturedResponse.ThisIsAPublishedMessageText);
         }
 
         [Fact]
@@ -124,7 +145,7 @@ namespace heitech.zer0mqXt.core.tests
         public class Message 
         {
             public string ThisIsAPublishedMessageText { get; set; }
-            public int[] Array { get; set; }
+            public int[] Array { get; set; } = Enumerable.Empty<int>().ToArray();
         }
     }
 }

@@ -42,15 +42,18 @@ namespace heitech.zer0mqXt.core.tests
             yield return new object[] { tcp };
         }
 
-        internal static ISocket BuildInProcSocketInstanceForTest(string pipeName)
-            => Zer0Mq.Go().SilenceLogger().BuildWithInProc(pipeName);
+        internal static ISocket BuildInProcSocketInstanceForTest(string pipeName, long? timeoutInMs = null, bool usePblshr = false)
+        {
+            var builder = Zer0Mq.Go().SilenceLogger();
+            if (timeoutInMs.HasValue)
+                builder.SetTimeOut(timeoutInMs.Value);
+            if (usePblshr)
+                builder.UsePublisher();
+
+            return builder.BuildWithInProc(pipeName);
+
+        } 
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-
-        public static ISocket BuildInprocSocketInstanceForTest(string pipeName)
-        {
-            return Zer0Mq.Go().SilenceLogger().BuildWithInProc(pipeName);
-        }
     }
 }

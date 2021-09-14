@@ -44,7 +44,7 @@ namespace zeromq.terminal
 
         static async Task Main(string[] args)
         {
-            string key = args.FirstOrDefault() ?? HELP;
+            string key = "bus-all";//;args.FirstOrDefault() ?? HELP;
             var actions = args.Where(x => _terminalActions.ContainsKey(x)).Select((x, index) => 
             {
                 var configuration = BuildConfig(args, index);
