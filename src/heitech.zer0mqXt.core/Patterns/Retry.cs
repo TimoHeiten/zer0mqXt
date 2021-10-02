@@ -29,7 +29,7 @@ namespace heitech.zer0mqXt.core.patterns
             catch (NetMQ.EndpointNotFoundException ntfnd)
             {
                 _configuration.Logger.Log(new ErrorLogMsg($"NetMQ.Endpoint could not be found at {_configuration.Address()}: " + ntfnd.Message));
-                await Task.Delay((int)_configuration.TimeOut.TotalMilliseconds).ConfigureAwait(false);
+                await Task.Delay(_configuration.Timeout).ConfigureAwait(false);
                 try
                 {
                     return await retryableAction().ConfigureAwait(false);

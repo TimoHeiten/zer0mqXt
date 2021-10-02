@@ -83,7 +83,7 @@ namespace heitech.zer0mqXt.core.tests
         {
             // Arrange
             var config = (SocketConfiguration)configuration;
-            config.TimeOut = TimeSpan.FromMilliseconds(50);
+            config.Timeout = TimeSpan.FromMilliseconds(50);
             var sut = new RqRep(config);
             // no server this time around
 
@@ -101,7 +101,7 @@ namespace heitech.zer0mqXt.core.tests
         {
             // Arrange
             var config = (SocketConfiguration)configuration;
-            config.TimeOut = TimeSpan.FromSeconds(1);
+            config.Timeout = TimeSpan.FromSeconds(1);
             var sut = new RqRep(config);
             sut.Respond<Request, Response>(rq =>
             {
@@ -240,18 +240,22 @@ namespace heitech.zer0mqXt.core.tests
         {
             // Arrange
             Response capturedResponse = null;
-            using var socket = ConfigurationTestData.BuildInProcSocketInstanceForTest("retry-socket", timeoutInMs: 500);
+            using var socket = ConfigurationTestData.BuildInProcSocketInstanceForTest("retry-socket-rq-rep", timeoutInMs: 500);
+            var waitHandle = new ManualResetEvent(false);
             // request in background thread
             Task.Run(async () => capturedResponse = await socket.RequestAsync<Request, Response>(new Request { RequestNumber = 42 }));
-            // wait a second for retry
-            Thread.Sleep(250);
 
             // Act
-            // setup server and wait for retry to work
-            socket.Respond<Request, Response>(rq => new Response { ResponseNumber = rq.RequestNumber} );
+            // setup server and wait for retry to work with waithandle
+            socket.Respond<Request, Response>(rq => {
+                    waitHandle.Set();
+                    return new Response { ResponseNumber = rq.RequestNumber};
+                }
+            );
 
             // Assert
-            Thread.Sleep(1500);
+            waitHandle.WaitOne();
+            Thread.Sleep(100); 
             Assert.NotNull(capturedResponse);
             Assert.Equal(42, capturedResponse.ResponseNumber);
         }

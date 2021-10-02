@@ -25,7 +25,7 @@ namespace heitech.zer0mqXt.core.infrastructure
             Serializer = adapter;
 
             RetryIsActive = true;
-            TimeOut = TimeSpan.FromSeconds(5);
+            Timeout = TimeSpan.FromSeconds(5);
         }
 
         ///<summary>
@@ -36,7 +36,7 @@ namespace heitech.zer0mqXt.core.infrastructure
         ///<summary>
         /// Default Timeout is 5 seconds
         ///</summary>
-        public TimeSpan TimeOut { get; set; }
+        public TimeSpan Timeout { get; set; }
 
         public bool RetryIsActive { get; set; }
 

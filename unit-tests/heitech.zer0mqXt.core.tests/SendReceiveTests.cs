@@ -32,7 +32,7 @@ namespace heitech.zer0mqXt.core.tests
         {
             // Arrange
             var config = (SocketConfiguration)configuration;
-            config.TimeOut = TimeSpan.FromMilliseconds(50);
+            config.Timeout = TimeSpan.FromMilliseconds(50);
             using var sut = new SendReceive(config);
             // no server this time around
 
@@ -45,13 +45,13 @@ namespace heitech.zer0mqXt.core.tests
 
         [Theory]
         [ClassData(typeof(ConfigurationTestData))]
-        public async Task Sends_With_Server_TimeOut_return_no_success(object configuration)
+        public async Task Sends_With_Server_Timeout_return_no_success(object configuration)
         {
             // Arrange
             var config = (SocketConfiguration)configuration;
-            config.TimeOut = TimeSpan.FromSeconds(1);
+            config.Timeout = TimeSpan.FromSeconds(1);
             using var sut = new SendReceive(config);
-            // is a timeout
+            // is a Timeout
             sut.SetupReceiver<Message>(m => Thread.Sleep(1500));
 
             // Act
