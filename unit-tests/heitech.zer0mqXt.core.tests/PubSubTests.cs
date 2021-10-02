@@ -126,17 +126,21 @@ namespace heitech.zer0mqXt.core.tests
             // 3 subs
             int counter = 0;
             var socket = Zer0Mq.Go().UsePublisher().BuildWithInProc("multiple-subscribers-one-publisher");
-            Action<Message> subAction = m => counter++;
-            var waitHandle = new ManualResetEvent(false);
-            socket.RegisterSubscriber(subAction);
-            socket.RegisterSubscriber(subAction);
-            socket.RegisterSubscriber<Message>(m => { subAction(m); waitHandle.Set(); });
+            Action<ManualResetEvent, Message> subAction = (handle, m) => { counter++; handle.Set(); };
+            var waitHandle1 = new ManualResetEvent(false);
+            var waitHandle2 = new ManualResetEvent(false);
+            var waitHandle3 = new ManualResetEvent(false);
+            socket.RegisterSubscriber<Message>(m => subAction(waitHandle1, m));
+            socket.RegisterSubscriber<Message>(m => subAction(waitHandle2, m));
+            socket.RegisterSubscriber<Message>(m => subAction(waitHandle3, m));
             
             // Act
             await socket.PublishAsync(new Message());
             
             // Assert
-            waitHandle.WaitOne();
+            waitHandle1.WaitOne();
+            waitHandle2.WaitOne();
+            waitHandle3.WaitOne();
             Assert.Equal(3, counter);
         }
 
