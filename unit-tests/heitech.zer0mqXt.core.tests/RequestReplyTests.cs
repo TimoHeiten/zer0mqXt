@@ -236,24 +236,22 @@ namespace heitech.zer0mqXt.core.tests
         }
 
         [Fact]
-        public void Retry_Rq_After_some_seconds_and_register_server_in_meantime_works()
+        public async Task Retry_Rq_After_some_seconds_and_register_server_in_meantime_works()
         {
             // Arrange
-            Response capturedResponse = null;
             using var socket = ConfigurationTestData.BuildInProcSocketInstanceForTest("retry-socket", timeoutInMs: 500);
-            // request in background thread
-            Task.Run(async () => capturedResponse = await socket.RequestAsync<Request, Response>(new Request { RequestNumber = 42 }));
-            // wait a second for retry
-            Thread.Sleep(250);
+            var capturedResponse = socket.RequestAsync<Request, Response>(new Request { RequestNumber = 42 });
+            await Task.Delay(250);
 
             // Act
             // setup server and wait for retry to work
             socket.Respond<Request, Response>(rq => new Response { ResponseNumber = rq.RequestNumber} );
 
             // Assert
-            Thread.Sleep(1500);
+            var response = await capturedResponse;
+            await Task.Delay(1500);
             Assert.NotNull(capturedResponse);
-            Assert.Equal(42, capturedResponse.ResponseNumber);
+            Assert.Equal(42, response.ResponseNumber);
         }
 
         public void Dispose()
