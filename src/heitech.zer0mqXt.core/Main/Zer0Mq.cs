@@ -1,3 +1,4 @@
+using System;
 using heitech.zer0mqXt.core.Adapters;
 using heitech.zer0mqXt.core.infrastructure;
 
@@ -8,11 +9,13 @@ namespace heitech.zer0mqXt.core.Main
     {
         private bool _isSilent;
         private ILogger _logger;
-        private ISerializerAdapter _serializer;
+        private TimeSpan _timeOut;
         private bool _usePublisher;
+        private ISerializerAdapter _serializer;
 
         private Zer0Mq()
         {
+            _timeOut = TimeSpan.FromSeconds(5);
             _logger = new BasicLogger();
             _serializer = new InternalAdapter();
         }
@@ -42,8 +45,10 @@ namespace heitech.zer0mqXt.core.Main
 
         private ISocket Build(SocketConfiguration configuration)
         {
-            configuration.Serializer = _serializer;
             configuration.Logger = _logger;
+            configuration.Timeout = _timeOut;
+            configuration.Serializer = _serializer;
+
             if (_isSilent)
                 _logger.SetSilent();
 
@@ -64,6 +69,18 @@ namespace heitech.zer0mqXt.core.Main
         public IZer0MqBuilder SilenceLogger()
         {
             _isSilent = true;
+            return this;
+        }
+
+        public IZer0MqBuilder SetTimeOut(long timeOutInMs)
+        {
+            _timeOut = TimeSpan.FromMilliseconds(timeOutInMs);
+            return this;
+        }
+
+        public IZer0MqBuilder SetTimeOut(TimeSpan timeOut)
+        {
+            _timeOut = timeOut;
             return this;
         }
     }

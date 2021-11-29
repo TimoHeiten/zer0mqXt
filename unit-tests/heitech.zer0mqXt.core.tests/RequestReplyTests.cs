@@ -83,7 +83,7 @@ namespace heitech.zer0mqXt.core.tests
         {
             // Arrange
             var config = (SocketConfiguration)configuration;
-            config.TimeOut = TimeSpan.FromMilliseconds(50);
+            config.Timeout = TimeSpan.FromMilliseconds(50);
             var sut = new RqRep(config);
             // no server this time around
 
@@ -101,7 +101,7 @@ namespace heitech.zer0mqXt.core.tests
         {
             // Arrange
             var config = (SocketConfiguration)configuration;
-            config.TimeOut = TimeSpan.FromSeconds(1);
+            config.Timeout = TimeSpan.FromSeconds(1);
             var sut = new RqRep(config);
             sut.Respond<Request, Response>(rq =>
             {
@@ -233,6 +233,28 @@ namespace heitech.zer0mqXt.core.tests
 
             // Assert
             Assert.Throws<ZeroMqXtSocketException>(a);
+        }
+
+        [Fact]
+        public async Task Retry_Rq_After_some_seconds_and_register_server_in_meantime_works()
+        {
+            // Arrange
+            using var socket = ConfigurationTestData.BuildInProcSocketInstanceForTest("retry-socket", timeoutInMs: 500);
+            var capturedResponse = socket.RequestAsync<Request, Response>(new Request { RequestNumber = 42 });
+            await Task.Delay(250);
+
+            // Act
+            // setup server and wait for retry to work with waithandle
+            socket.Respond<Request, Response>(rq => {
+                    return new Response { ResponseNumber = rq.RequestNumber};
+                }
+            );
+
+            // Assert
+            var response = await capturedResponse;
+            await Task.Delay(1500);
+            Assert.NotNull(capturedResponse);
+            Assert.Equal(42, response.ResponseNumber);
         }
 
         public void Dispose()

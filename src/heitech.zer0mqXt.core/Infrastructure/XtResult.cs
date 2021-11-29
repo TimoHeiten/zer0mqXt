@@ -36,7 +36,7 @@ namespace heitech.zer0mqXt.core.infrastructure
 
         internal static XtResult<T> Failed(Exception exception, string operation = "request")
         {
-            return new XtResult<T> { Exception = exception };
+            return new XtResult<T> { Exception = exception, Operation = operation };
         }
 
         internal static XtResult<T> Success(T result, string operation = "request")
@@ -48,7 +48,7 @@ namespace heitech.zer0mqXt.core.infrastructure
 
         public override string ToString()
         {
-            var success = IsSuccess ? " succeeded " : " failed";
+            var success = IsSuccess ? "succeeded " : "failed";
             var firstPart = $"XtResult of [{Operation}] - has {success}";
             var second = IsSuccess ? _result?.GetType() : Exception?.GetType();
 
@@ -70,7 +70,7 @@ namespace heitech.zer0mqXt.core.infrastructure
 
         public override string ToString()
         {
-            var success = IsSuccess ? " succeeded " : " failed";
+            var success = IsSuccess ? " succeeded" : " failed";
             var firstPart = $"XtResult of [{Operation}] - has {success}";
             var second = " with: " + Exception?.GetType();
 

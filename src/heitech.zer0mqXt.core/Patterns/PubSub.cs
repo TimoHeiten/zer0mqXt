@@ -9,7 +9,7 @@ using NetMQ.Sockets;
 
 namespace heitech.zer0mqXt.core.patterns
 {
-    // currently only works correctly for inproc 
+    // FIXME currently only works correctly for inproc 
     internal class PubSub : IDisposable
     {
         private readonly SocketConfiguration _configuration;
@@ -49,9 +49,11 @@ namespace heitech.zer0mqXt.core.patterns
                 throw new NetMQException(errorMsg);
             }
 
+            var retry = new Retry(_configuration);
+
             try
             {
-                return await Task.Run(() => 
+                Func<Task<XtResult<TMessage>>> retryableAction = async () => await Task.Run(() => 
                 {
                     try
                     {
@@ -65,7 +67,8 @@ namespace heitech.zer0mqXt.core.patterns
 
                     return XtResult<TMessage>.Success(message, operationName);
                 }).ConfigureAwait(false);
-                
+
+                return await retry.RunAsyncWithRetry(retryableAction);
             }
             catch (Exception ex)
             {
@@ -187,7 +190,7 @@ namespace heitech.zer0mqXt.core.patterns
                 }
                 catch (Exception ex)
                 {
-                    _configuration.Logger.Log(new ErrorLogMsg(ex.Message));
+                    _configuration.Logger.Log(new ErrorLogMsg($"Subscribe did not work :[{ex.Message}]. Did you Prime the publisher for this socket?"));
                     return (false, ex);
                 }
             }

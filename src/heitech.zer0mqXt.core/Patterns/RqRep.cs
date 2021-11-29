@@ -3,7 +3,6 @@ using heitech.zer0mqXt.core.transport;
 using NetMQ;
 using NetMQ.Sockets;
 using System;
-using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -18,33 +17,12 @@ namespace heitech.zer0mqXt.core.patterns
         }
 
         #region Request / Client
-        public async Task<XtResult<TResult>> RequestAsync<T, TResult>(T request)
+        public Task<XtResult<TResult>> RequestAsync<T, TResult>(T request)
             where T : class, new()
             where TResult : class, new()
         {
-            try
-            {
-                return await DoRequestAsync<T, TResult>(request).ConfigureAwait(false);
-            }
-            catch (NetMQ.EndpointNotFoundException ntfnd)
-            {
-                _configuration.Logger.Log(new ErrorLogMsg($"NetMQ.Endpoint could not be found at {_configuration.Address()}: " + ntfnd.Message));
-                await Task.Delay((int)_configuration.TimeOut.TotalMilliseconds).ConfigureAwait(false);
-                try
-                {
-                    return await DoRequestAsync<T, TResult>(request).ConfigureAwait(false);
-                }
-                catch (System.Exception inner)
-                {
-                    _configuration.Logger.Log(new ErrorLogMsg("Request failed after Retry: " + inner.Message));
-                    return XtResult<TResult>.Failed(inner);
-                }
-            }
-            catch (System.Exception ex)
-            {
-                _configuration.Logger.Log(new ErrorLogMsg("Request failed: " + ex.Message));
-                return XtResult<TResult>.Failed(ex);
-            }
+            var retry = new Retry(_configuration);
+            return retry.RunAsyncWithRetry<TResult>(() => DoRequestAsync<T, TResult>(request));
         }
 
         private async Task<XtResult<TResult>> DoRequestAsync<T, TResult>(T request)
@@ -62,14 +40,14 @@ namespace heitech.zer0mqXt.core.patterns
             return await Task.Run(() => 
             {
                 // the request to be send with timeout
-                bool rqDidNotTimeOut = rqSocket.TrySendMultipartMessage(_configuration.TimeOut, message);
+                bool rqDidNotTimeOut = rqSocket.TrySendMultipartMessage(_configuration.Timeout, message);
                 if (!rqDidNotTimeOut)
                     return XtResult<TResult>.Failed(new TimeoutException($"Request<{typeof(T)}, {typeof(TResult)}> timed out"), operation);
 
                 _configuration.Logger.Log(new DebugLogMsg($"successfully sent [Request:{typeof(T)}] and waiting for response [Response:{typeof(TResult)}]"));
                 // wait for the response with timeout
                 var response = new NetMQMessage();
-                bool noTimeOut = rqSocket.TryReceiveMultipartMessage(_configuration.TimeOut, ref response, expectedFrameCount: 3);
+                bool noTimeOut = rqSocket.TryReceiveMultipartMessage(_configuration.Timeout, ref response, expectedFrameCount: 3);
                 if (!noTimeOut)
                     return XtResult<TResult>.Failed(new TimeoutException($"Request<{typeof(T)}, {typeof(TResult)}> timed out"), operation);
                 
@@ -246,9 +224,9 @@ namespace heitech.zer0mqXt.core.patterns
                 }
 
                 // try send response with timeout
-                bool noTimeout = socket.TrySendMultipartMessage(_configuration.TimeOut, response);
+                bool noTimeout = socket.TrySendMultipartMessage(_configuration.Timeout, response);
                 if (!noTimeout)
-                    _configuration.Logger.Log(new ErrorLogMsg($"Responding to [Request:{typeof(T)}] with [Response:{typeof(TResult)}] timed-out after {_configuration.TimeOut}"));
+                    _configuration.Logger.Log(new ErrorLogMsg($"Responding to [Request:{typeof(T)}] with [Response:{typeof(TResult)}] timed-out after {_configuration.Timeout}"));
             }
             catch (NetMQ.TerminatingException terminating)
             {

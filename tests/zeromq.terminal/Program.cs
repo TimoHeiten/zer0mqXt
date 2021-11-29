@@ -44,7 +44,7 @@ namespace zeromq.terminal
 
         static async Task Main(string[] args)
         {
-            string key = args.FirstOrDefault() ?? HELP;
+            string key = "bus-all";//;args.FirstOrDefault() ?? HELP;
             var actions = args.Where(x => _terminalActions.ContainsKey(x)).Select((x, index) => 
             {
                 var configuration = BuildConfig(args, index);
@@ -77,7 +77,7 @@ namespace zeromq.terminal
             SocketConfiguration configuration = SocketConfiguration.InprocConfig($"this-inproc-sir-{Guid.NewGuid()}");
             if (protocol != null && protocol != version)
                 configuration = SocketConfiguration.TcpConfig($"555{index}");
-            configuration.TimeOut = TimeSpan.FromSeconds(2);
+            configuration.Timeout = TimeSpan.FromSeconds(2);
             return configuration;
         }
 
