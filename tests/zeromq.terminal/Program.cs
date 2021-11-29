@@ -77,7 +77,7 @@ namespace zeromq.terminal
             SocketConfiguration configuration = SocketConfiguration.InprocConfig($"this-inproc-sir-{Guid.NewGuid()}");
             if (protocol != null && protocol != version)
                 configuration = SocketConfiguration.TcpConfig($"555{index}");
-            configuration.TimeOut = TimeSpan.FromSeconds(2);
+            configuration.Timeout = TimeSpan.FromSeconds(2);
             return configuration;
         }
 

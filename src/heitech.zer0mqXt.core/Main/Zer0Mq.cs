@@ -15,7 +15,7 @@ namespace heitech.zer0mqXt.core.Main
 
         private Zer0Mq()
         {
-            _timeOut = TimeSpan.FromMilliseconds(5000); // 5 seconds
+            _timeOut = TimeSpan.FromSeconds(5);
             _logger = new BasicLogger();
             _serializer = new InternalAdapter();
         }
@@ -46,7 +46,7 @@ namespace heitech.zer0mqXt.core.Main
         private ISocket Build(SocketConfiguration configuration)
         {
             configuration.Logger = _logger;
-            configuration.TimeOut = _timeOut;
+            configuration.Timeout = _timeOut;
             configuration.Serializer = _serializer;
 
             if (_isSilent)

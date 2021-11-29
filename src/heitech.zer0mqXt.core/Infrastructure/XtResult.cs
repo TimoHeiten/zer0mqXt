@@ -70,7 +70,7 @@ namespace heitech.zer0mqXt.core.infrastructure
 
         public override string ToString()
         {
-            var success = IsSuccess ? " succeeded " : " failed";
+            var success = IsSuccess ? " succeeded" : " failed";
             var firstPart = $"XtResult of [{Operation}] - has {success}";
             var second = " with: " + Exception?.GetType();
 

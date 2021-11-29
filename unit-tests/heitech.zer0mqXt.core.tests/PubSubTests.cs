@@ -77,20 +77,18 @@ namespace heitech.zer0mqXt.core.tests
         {
             // Arrange
             Message capturedResponse = null;
-            using var socket = ConfigurationTestData.BuildInProcSocketInstanceForTest("retry-socket", timeoutInMs: 500, usePblshr: true);
+            using var socket = ConfigurationTestData.BuildInProcSocketInstanceForTest("retry-socket-pub-sub", timeoutInMs: 500, usePblshr: true);
             var waitHandle = new ManualResetEvent(false);
-            // request in background thread
+            // setup subscriber to handle messages in a background thread
             socket.RegisterSubscriber<Message>(msg => { capturedResponse = msg; waitHandle.Set();});
-            // wait a second for retry
-            Thread.Sleep(250);
 
             // Act
             // setup server and wait for retry to work
             await socket.PublishAsync(new Message { ThisIsAPublishedMessageText = "published-message" });
 
             // Assert
-            Thread.Sleep(1500);
             waitHandle.WaitOne();
+            Thread.Sleep(300);
             Assert.NotNull(capturedResponse);
             Assert.Equal("published-message", capturedResponse.ThisIsAPublishedMessageText);
         }
@@ -128,24 +126,28 @@ namespace heitech.zer0mqXt.core.tests
             // 3 subs
             int counter = 0;
             var socket = Zer0Mq.Go().UsePublisher().BuildWithInProc("multiple-subscribers-one-publisher");
-            Action<Message> subAction = m => counter++;
-            var waitHandle = new ManualResetEvent(false);
-            socket.RegisterSubscriber(subAction);
-            socket.RegisterSubscriber(subAction);
-            socket.RegisterSubscriber<Message>(m => { subAction(m); waitHandle.Set(); });
+            Action<ManualResetEvent, Message> subAction = (handle, m) => { counter++; handle.Set(); };
+            var waitHandle1 = new ManualResetEvent(false);
+            var waitHandle2 = new ManualResetEvent(false);
+            var waitHandle3 = new ManualResetEvent(false);
+            socket.RegisterSubscriber<Message>(m => subAction(waitHandle1, m));
+            socket.RegisterSubscriber<Message>(m => subAction(waitHandle2, m));
+            socket.RegisterSubscriber<Message>(m => subAction(waitHandle3, m));
             
             // Act
             await socket.PublishAsync(new Message());
             
             // Assert
-            waitHandle.WaitOne();
+            waitHandle1.WaitOne();
+            waitHandle2.WaitOne();
+            waitHandle3.WaitOne();
             Assert.Equal(3, counter);
         }
 
         public class Message 
         {
             public string ThisIsAPublishedMessageText { get; set; }
-            public int[] Array { get; set; } = Enumerable.Empty<int>().ToArray();
+            public int[] Array { get; set; } = System.Array.Empty<int>();
         }
     }
 }

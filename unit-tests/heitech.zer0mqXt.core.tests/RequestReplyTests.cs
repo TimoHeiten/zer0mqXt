@@ -83,7 +83,7 @@ namespace heitech.zer0mqXt.core.tests
         {
             // Arrange
             var config = (SocketConfiguration)configuration;
-            config.TimeOut = TimeSpan.FromMilliseconds(50);
+            config.Timeout = TimeSpan.FromMilliseconds(50);
             var sut = new RqRep(config);
             // no server this time around
 
@@ -101,7 +101,7 @@ namespace heitech.zer0mqXt.core.tests
         {
             // Arrange
             var config = (SocketConfiguration)configuration;
-            config.TimeOut = TimeSpan.FromSeconds(1);
+            config.Timeout = TimeSpan.FromSeconds(1);
             var sut = new RqRep(config);
             sut.Respond<Request, Response>(rq =>
             {
@@ -244,8 +244,11 @@ namespace heitech.zer0mqXt.core.tests
             await Task.Delay(250);
 
             // Act
-            // setup server and wait for retry to work
-            socket.Respond<Request, Response>(rq => new Response { ResponseNumber = rq.RequestNumber} );
+            // setup server and wait for retry to work with waithandle
+            socket.Respond<Request, Response>(rq => {
+                    return new Response { ResponseNumber = rq.RequestNumber};
+                }
+            );
 
             // Assert
             var response = await capturedResponse;
