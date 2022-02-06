@@ -10,11 +10,7 @@ namespace heitech.zer0mqXt.core.patterns
     internal class Retry
     {
         private readonly SocketConfiguration _configuration;
-
-        internal Retry(SocketConfiguration configuration)
-        {
-            this._configuration = configuration;
-        }
+        internal Retry(SocketConfiguration configuration) => _configuration = configuration;
 
         ///<summary>
         /// Register your retryable callback here

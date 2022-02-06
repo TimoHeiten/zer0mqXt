@@ -1,26 +1,28 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using heitech.zer0mqXt.core.infrastructure;
 using heitech.zer0mqXt.core.patterns;
+using NetMQ;
 
 namespace heitech.zer0mqXt.core.Main
 {
     ///<inheritdoc cref="ISocket"/>
     internal class Socket : ISocket
     {
+        private readonly object _token = new();
         private readonly RqRep _rqRep;
-        private readonly PubSub _pubSub;
+        private Publisher _publisher;
+        private Subscriber _subscriber;
         private readonly SendReceive _sendReceive;
-
         private readonly Func<Publisher> _factory;
         private readonly Func<Subscriber> _subfactory;
 
         ///<inheritdoc/>
-        internal Socket(SocketConfiguration config) 
+        internal Socket(SocketConfiguration config)
         {
             _rqRep = new RqRep(config);
-            _pubSub = new PubSub(config);
             _sendReceive = new SendReceive(config);
             _factory = () => new Publisher(config);
             _subfactory = () => new Subscriber(config);
@@ -29,37 +31,39 @@ namespace heitech.zer0mqXt.core.Main
         public void Dispose()
         {
             _rqRep.Dispose();
-            _pubSub.Dispose();
             _sendReceive.Dispose();
+            _publisher?.Dispose();
+            _subscriber?.Dispose();
         }
 
-        // we need to use Bind for a publisher so Subscribers can connect to it
-        // this is due to the mechanisms integral to Zer0Mq itself
-        internal void PrimePublisher()
-        {
-            _pubSub.PrimePublisher();
-        }
-
-        public async Task PublishAsync<TMessage>(TMessage message) 
+        public async Task PublishAsync<TMessage>(TMessage message)
             where TMessage : class, new()
         {
-            System.Console.WriteLine("publishes");
-            var xtResult = await _pubSub.PublishAsync(message).ConfigureAwait(false);
-            System.Console.WriteLine($"{xtResult.IsSuccess} - publishsuccss?");
+            lock (_token)
+            {
+                if (_publisher == null)
+                {
+                    _publisher = _factory();
+                }
+            }
+
+            var xtResult = await _publisher.SendAsync(message);
             ThrowOnNonSuccess(xtResult);
         }
 
         public void RegisterAsyncSubscriber<TMessage>(Func<TMessage, Task> asyncCallback, CancellationToken cancellationToken = default)
             where TMessage : class, new()
         {
-            var result = _pubSub.SubscribeHandlerAsync(asyncCallback, cancellationToken);
+            Subscriber subscriber = GetSubscriber();
+            XtResult result = subscriber.RegisterAsyncSubscriber(asyncCallback, null, cancellationToken);
             ThrowOnNonSuccess(result);
         }
 
         public void RegisterSubscriber<TMessage>(Action<TMessage> callback, CancellationToken cancellationToken = default)
             where TMessage : class, new()
         {
-            var result = _pubSub.SubscribeHandler(callback, cancellationToken);
+            Subscriber subscriber = GetSubscriber();
+            XtResult result = subscriber.RegisterSubscriber(callback, null, cancellationToken);
             ThrowOnNonSuccess(result);
         }
 
@@ -89,7 +93,7 @@ namespace heitech.zer0mqXt.core.Main
             ThrowOnNonSuccess(xtResult);
         }
 
-        public async Task SendAsync<TMessage>(TMessage message) 
+        public async Task SendAsync<TMessage>(TMessage message)
             where TMessage : class, new()
         {
             var xtResult = await _sendReceive.SendAsync(message).ConfigureAwait(false);
@@ -97,7 +101,7 @@ namespace heitech.zer0mqXt.core.Main
             ThrowOnNonSuccess(xtResult);
         }
 
-        public void Receiver<TMessage>(Action<TMessage> callback, CancellationToken token = default) 
+        public void Receiver<TMessage>(Action<TMessage> callback, CancellationToken token = default)
             where TMessage : class, new()
         {
             var xtResult = _sendReceive.SetupReceiver(callback, token);
@@ -105,7 +109,7 @@ namespace heitech.zer0mqXt.core.Main
             ThrowOnNonSuccess(xtResult);
         }
 
-        public void ReceiverAsync<TMessage>(Func<TMessage, Task> asyncCallack, CancellationToken token = default) 
+        public void ReceiverAsync<TMessage>(Func<TMessage, Task> asyncCallack, CancellationToken token = default)
             where TMessage : class, new()
         {
             var xtResult = _sendReceive.SetupReceiverAsync(asyncCallack, token);
@@ -119,9 +123,9 @@ namespace heitech.zer0mqXt.core.Main
                 throw ZeroMqXtSocketException.FromException(xtResult.Exception);
         }
 
-         public async Task<bool> TryRequestAsync<TRequest, TResult>(TRequest request, Func<TResult, Task> successCallback, Func<Task> failureCallback)
-            where TRequest : class, new()
-            where TResult : class, new()
+        public async Task<bool> TryRequestAsync<TRequest, TResult>(TRequest request, Func<TResult, Task> successCallback, Func<Task> failureCallback)
+           where TRequest : class, new()
+           where TResult : class, new()
         {
             var xtResult = await _rqRep.RequestAsync<TRequest, TResult>(request).ConfigureAwait(false);
 
@@ -129,7 +133,7 @@ namespace heitech.zer0mqXt.core.Main
                 await successCallback(xtResult.GetResult()).ConfigureAwait(false);
             else
                 await failureCallback().ConfigureAwait(false);
-            
+
             return xtResult.IsSuccess;
         }
 
@@ -152,7 +156,7 @@ namespace heitech.zer0mqXt.core.Main
             return xtResult.IsSuccess;
         }
 
-        public async Task<bool> TrySendAsync<TMessage>(TMessage message) 
+        public async Task<bool> TrySendAsync<TMessage>(TMessage message)
             where TMessage : class, new()
         {
             var xtResult = await _sendReceive.SendAsync(message).ConfigureAwait(false);
@@ -171,14 +175,29 @@ namespace heitech.zer0mqXt.core.Main
             return xtResult.IsSuccess;
         }
 
-        public Publisher GetPublisher()
+        private Subscriber GetSubscriber()
         {
-            return _factory();
+            lock (_token)
+            {
+                if (_subscriber == null)
+                {
+                    _subscriber = _subfactory();
+                }
+            }
+            return _subscriber;
         }
 
-        public Subscriber GetSubscriber()
+        public IPublisher GetPublisher()
         {
-            return _subfactory();
+            lock (_token)
+            {
+                if (_publisher == null)
+                {
+                    _publisher = _factory();
+                    _publisher.SetupPublisher();
+                }
+            }
+            return _publisher;
         }
     }
 }

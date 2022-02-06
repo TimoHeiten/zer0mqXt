@@ -10,7 +10,7 @@ namespace heitech.zer0mqXt.core.transport
     {
         protected ISerializerAdapter _serializer;
         protected SocketConfiguration _configuration;
-        protected byte[] TypeFrame => CreateTypeFrame(_serializer);
+        protected byte[] TypeFrame => _serializer.Serialize(typeof(TMessage).TypeFrameName());
         protected byte[] Payload { get; private set; }
         public TMessage Content { get; private set; }
 
@@ -34,47 +34,18 @@ namespace heitech.zer0mqXt.core.transport
         {
             return self.ToNetMqMessage();
         }
-
-        public static byte[] CreateTypeFrame(ISerializerAdapter serializer) => serializer.Serialize(typeof(TMessage).TypeFrameName());
     }
 
     public static class MessageParser
     {
-        internal static XtResult<TMessage> ParsePubSubMessage<TMessage>(this NetMQMessage msg, SocketConfiguration configuration)
-            where TMessage : class
-        {
-            const string operation = "parse-pub-sub-msg";
-            if (msg.FrameCount != 2)
-            {
-                var exc = ZeroMqXtSocketException.MissedExpectedFrameCount(msg.FrameCount, expectedCount: 2);
-                configuration.Logger.Log(new DebugLogMsg(exc.Message));
-                return XtResult<TMessage>.Failed(exc);
-            }
-            
-            var receivedType = configuration.Serializer.Deserialize<string>(msg.First.ToByteArray());
-            if (receivedType != typeof(TMessage).FullName)
-                return XtResult<TMessage>.Failed(ZeroMqXtSocketException.Frame1TypeDoesNotMatch<TMessage>(receivedType), operation);
-
-            try
-            {
-                var instance = configuration.Serializer.Deserialize<TMessage>(msg.Last.ToByteArray());
-                return XtResult<TMessage>.Success(instance, operation: operation);
-            }
-            catch (Exception ex)
-            {
-                return XtResult<TMessage>.Failed(ex, operation: operation);
-            }
-
-        }
-
         ///<summary>
         /// Construct a Message from ReceivedFrames - according to 
         /// <para>Frame 1 - RequestTypeName</para>
         /// <para>Frame 2 - Successful parsing and use of Incoming Instance of RequestType / on Response it is the successful deserialization</para>
         /// <para>Frame 3 - Actual Payload and instance of the RequestType</para>
         ///</summary>
-         internal static XtResult<TMessage> ParseRqRepMessage<TMessage>(this NetMQMessage msg, SocketConfiguration configuration)
-            where TMessage : class
+        internal static XtResult<TMessage> ParseRqRepMessage<TMessage>(this NetMQMessage msg, SocketConfiguration configuration)
+           where TMessage : class
         {
             configuration.Logger.Log(new DebugLogMsg($"parsing [{typeof(TMessage)}]"));
             const string operation = "parse-rq-rep-msg";
@@ -103,7 +74,7 @@ namespace heitech.zer0mqXt.core.transport
             if (!isSuccess)
             {
                 var exceptnText = configuration.Serializer.Deserialize<string>(payloadFrame);
-                var excption = new ZeroMqXtSocketException("Server failed with" +  exceptnText);
+                var excption = new ZeroMqXtSocketException("Server failed with" + exceptnText);
                 configuration.Logger.Log(new DebugLogMsg(excption.Message));
                 return XtResult<TMessage>.Failed(excption, operation);
             }

@@ -16,19 +16,20 @@ namespace zeromq.terminal.PubSubTests
             if (configuration is SocketConfiguration.Tcp tcp)
             {
                 string port = tcp.Address().Split(":").Last();
-                return Zer0Mq.Go().UsePublisher().BuildWithTcp("localhost", port);
+                return Zer0Mq.Go().BuildWithTcp("localhost", port);
             }
             else
             {
-                return Zer0Mq.Go().UsePublisher().BuildWithInProc(configuration.Address().Split("//").Last());
+                return Zer0Mq.Go().BuildWithInProc(configuration.Address().Split("//").Last());
             }
         }
 
         internal static async Task SimplePubSub(SocketConfiguration configuration)
         {
             ISocket socket = ToSocket(configuration);
+            var pub = socket.GetPublisher();
             socket.RegisterSubscriber<PubSubMessage>(msg => System.Console.WriteLine("msg received: " + msg.Message));
-            await socket.PublishAsync(new PubSubMessage { Message = "Published simply"});
+            await pub.SendAsync(new PubSubMessage { Message = "Published simply"});
 
             System.Console.WriteLine("press enter to exit");
             Console.ReadLine();
@@ -39,6 +40,7 @@ namespace zeromq.terminal.PubSubTests
         internal static async Task PubSubWithCancellation(SocketConfiguration configuration)
         {
             ISocket socket = ToSocket(configuration);
+            var pub = socket.GetPublisher();
             using var cts = new CancellationTokenSource();
             var token = cts.Token;
             socket.RegisterSubscriber<PubSubMessage>(msg => System.Console.WriteLine("msg received: " + msg.Message), token);
@@ -46,7 +48,7 @@ namespace zeromq.terminal.PubSubTests
             System.Console.WriteLine("try multiple Publishes");
             foreach (var item in Enumerable.Range(0, 3))
             {
-                await socket.PublishAsync(new PubSubMessage { Message = "Published with cancellation"});
+                await pub.SendAsync(new PubSubMessage { Message = "Published with cancellation"});
             }
             System.Console.WriteLine("press enter to exit");
             Console.ReadLine();

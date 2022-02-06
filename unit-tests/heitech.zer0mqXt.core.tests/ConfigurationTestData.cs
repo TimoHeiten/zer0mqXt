@@ -47,8 +47,6 @@ namespace heitech.zer0mqXt.core.tests
             var builder = Zer0Mq.Go().SilenceLogger();
             if (timeoutInMs.HasValue)
                 builder.SetTimeOut(timeoutInMs.Value);
-            if (usePblshr)
-                builder.UsePublisher();
 
             return builder.BuildWithInProc(pipeName);
 

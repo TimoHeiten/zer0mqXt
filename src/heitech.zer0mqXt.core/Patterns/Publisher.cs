@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using heitech.zer0mqXt.core.infrastructure;
 using heitech.zer0mqXt.core.transport;
 using NetMQ;
@@ -6,47 +7,74 @@ using NetMQ.Sockets;
 
 namespace heitech.zer0mqXt.core.patterns
 {
-    public class Publisher : IDisposable
+    public class Publisher : IDisposable, IPublisher
     {
-        private readonly SocketConfiguration _configuration;
-        private readonly object _concurrencyToken = new();
         private PublisherSocket _publisherSocket;
+        private readonly object _concurrencyToken = new();
+        private readonly SocketConfiguration _configuration;
+        private readonly Retry _retry;
+
         internal Publisher(SocketConfiguration configuration)
         {
+            _retry = new Retry(configuration);
             _configuration = configuration;
         }
 
         private bool _isSetup => _publisherSocket != null;
-        // todo retry and xtresult, also async
-        public void Send<TMessage>(TMessage message, string topic = null)
-            where TMessage : class, new()
+
+        internal void SetupPublisher()
         {
             lock (_concurrencyToken)
             {
                 if (!_isSetup)
                 {
                     string address = _configuration.Address(_publisherSocket);
-                    Print(new DebugLogMsg($"Setup publisher at [{address}]"));
+                    _configuration.Logger.Log(new DebugLogMsg($"Setup publisher at [{address}]"));
                     _publisherSocket = new PublisherSocket();
-                    _publisherSocket.Bind(address);
+
+                    try
+                    {
+                        _publisherSocket.Bind(address);
+                    }
+                    catch (System.Exception ex)
+                    {
+                        _configuration.Logger.Log(new ErrorLogMsg($"Binding Publisher at [{address}] failed:{Environment.NewLine}" + ex));
+                        throw;
+                    }
                 }
             }
-
-            string topicFrame = topic ?? _configuration.Serializer.Encoding.GetString(Message<TMessage>.CreateTypeFrame(_configuration.Serializer));
-            System.Console.WriteLine($"send topic: {topicFrame}");
-            NetMQMessage pubSubMessage = new PubSubMessage<TMessage>(_configuration, message, topicFrame);
-            
-            _publisherSocket.SendMoreFrame(topicFrame).SendFrame(pubSubMessage.Last.ToByteArray());
+        }
+        public async Task<XtResult<TMessage>> SendAsync<TMessage>(TMessage message, string topic = null)
+            where TMessage : class, new()
+        {
+            SetupPublisher();
+            return await _retry.RunAsyncWithRetry(async () => await PublishAsync(message, topic));
         }
 
-        private void Print(LogMessage msg)
+        private Task<XtResult<TMessage>> PublishAsync<TMessage>(TMessage message, string topic)
+            where TMessage : class, new()
         {
-            _configuration.Logger.Log(msg);
+            return Task.Run<XtResult<TMessage>>(() =>
+            {
+                try
+                {
+                    string topicFrame = _configuration.GetTopicFrame<TMessage>(topic);
+                    byte[] pubSubMessage = _configuration.PubSubMessage(message);
+                    _configuration.Logger.Log(new DebugLogMsg($"published to {topicFrame} for message {typeof(TMessage)}"));
+                    _publisherSocket.SendMoreFrame(topicFrame).SendFrame(pubSubMessage);
+
+                    return XtResult<TMessage>.Success(message);
+                }
+                catch (System.Exception ex)
+                {
+                    return XtResult<TMessage>.Failed(ex, "publish");
+                }
+            });
         }
 
         public void Dispose()
         {
-            throw new NotImplementedException();
+            _publisherSocket?.Dispose();
         }
     }
 }

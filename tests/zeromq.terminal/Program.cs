@@ -1,12 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using heitech.zer0mqXt.core.infrastructure;
-using NetMQ;
-using NetMQ.Sockets;
-using Newtonsoft.Json;
 using zeromq.terminal.PubSubTests;
 using zeromq.terminal.RqRepTests;
 
@@ -47,6 +43,7 @@ namespace zeromq.terminal
         }
 
         private class Msg { public string Content { get; set; } }
+        private class MsgV2 { public string Content { get; set; } }
 
         static async Task Main(string[] args)
         {
@@ -59,20 +56,23 @@ namespace zeromq.terminal
                 int count = 100;
                 while (count > 0)
                 {
-                    lisher.Send<Msg>(new Msg { Content = "from new version" }, "TopicA");
+                    // await lisher.SendAsync<Msg>(new Msg { Content = "v1" });
+                    await lisher.SendAsync<MsgV2>(new MsgV2 { Content = "v2" });
                     count--;
                     await Task.Delay(500);
+                    System.Console.WriteLine("proceed?");
+                    Console.ReadKey();
                 }
 
-                lisher.Dispose();
+                pubs.Dispose();
             }
             else
             {
                 try
                 {
-                    var sub = socket.BuildWithTcp("localhost", "4580").GetSubscriber();
-                    sub.RegisterSubscriber<Msg>(callback: m => System.Console.WriteLine($"handled msg: {m.Content}"), "TopicA");
-                    
+                    var sub = socket.BuildWithTcp("localhost", "4580");
+                    sub.RegisterSubscriber<Msg>(callback: m => System.Console.WriteLine($"handled msg: {m.Content}"));
+                    sub.RegisterSubscriber<MsgV2>(callback: m => System.Console.WriteLine("the other subscriber was called"));
                     Console.ReadKey();
                     sub.Dispose();
                 }

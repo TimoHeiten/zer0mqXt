@@ -10,7 +10,6 @@ namespace heitech.zer0mqXt.core.Main
         private bool _isSilent;
         private ILogger _logger;
         private TimeSpan _timeOut;
-        private bool _usePublisher;
         private ISerializerAdapter _serializer;
 
         private Zer0Mq()
@@ -54,16 +53,7 @@ namespace heitech.zer0mqXt.core.Main
 
             var socket = new Socket(configuration);
 
-            if (_usePublisher)
-                socket.PrimePublisher();
-
             return socket;
-        }
-
-        public IZer0MqBuilder UsePublisher()
-        {
-            _usePublisher = true;
-            return this;
         }
 
         public IZer0MqBuilder SilenceLogger()

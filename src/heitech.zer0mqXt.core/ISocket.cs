@@ -1,19 +1,15 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using heitech.zer0mqXt.core.patterns;
 
 namespace heitech.zer0mqXt.core
 {
     ///<summary>
-    /// Access to all underlying patterns of the zeroMQ Library
+    /// Access to all underlying patterns of the zeroMQ Library.
+    /// Use the instance for only one interaction each
     ///</summary>
     public interface ISocket : IDisposable
     { 
-
-        Publisher GetPublisher();
-        Subscriber GetSubscriber();
-
         ///<summary>
         /// Try to send a Request with the given configuration and invoke the appropriate callback on success or failure
         ///</summary>
@@ -56,20 +52,16 @@ namespace heitech.zer0mqXt.core
             where TRequest : class, new()
             where TResult : class, new();
 
-        ///<summary>
-        /// Publish a Message to all listening subscribers
-        ///</summary>
-        Task PublishAsync<TMessage>(TMessage message)
-            where TMessage : class, new();
+        IPublisher GetPublisher();
 
         ///<summary>
-        /// Register a non blocking Subscriber to a TMessage
+        /// Register a non blocking Subscriber to a TMessage. Make sure the Publisher already exists and is setup first
         ///</summary>
         void RegisterSubscriber<TMessage>(Action<TMessage> callback, CancellationToken cancellationToken = default)
             where TMessage : class, new();
 
         ///<summary>
-        /// Register a non blocking and asynchronous Subscriber to a TMessage
+        /// Register a non blocking and asynchronous Subscriber to a TMessage.  Make sure the Publisher already exists and is setup first
         ///</summary>
         void RegisterAsyncSubscriber<TMessage>(Func<TMessage, Task> asyncCallback, CancellationToken cancellationToken = default)
             where TMessage : class, new();
