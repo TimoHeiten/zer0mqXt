@@ -1,10 +1,10 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using heitech.zer0mqXt.core.infrastructure;
 using heitech.zer0mqXt.core.transport;
 using NetMQ;
 using NetMQ.Sockets;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace heitech.zer0mqXt.core.patterns
 {
@@ -37,7 +37,7 @@ namespace heitech.zer0mqXt.core.patterns
 
             var message = new RequestReplyMessage<T>(_configuration, request);
 
-            return await Task.Run(() => 
+            return await Task.Run(() =>
             {
                 // the request to be send with timeout
                 bool rqDidNotTimeOut = rqSocket.TrySendMultipartMessage(_configuration.Timeout, message);
@@ -50,7 +50,7 @@ namespace heitech.zer0mqXt.core.patterns
                 bool noTimeOut = rqSocket.TryReceiveMultipartMessage(_configuration.Timeout, ref response, expectedFrameCount: 3);
                 if (!noTimeOut)
                     return XtResult<TResult>.Failed(new TimeoutException($"Request<{typeof(T)}, {typeof(TResult)}> timed out"), operation);
-                
+
                 _configuration.Logger.Log(new DebugLogMsg($"received Response [Response:{typeof(TResult)}]"));
 
                 // parse the response and return the result
@@ -118,9 +118,9 @@ namespace heitech.zer0mqXt.core.patterns
             // handle notifies when the server is set up
             eventHandle = new ManualResetEvent(false);
             // create a new background thread with the response callback
-            
+
             Exception faultingException = null;
-            _ = Task.Run(() => 
+            _ = Task.Run(() =>
             {
                 try
                 {
@@ -163,16 +163,16 @@ namespace heitech.zer0mqXt.core.patterns
             private readonly Func<T, TResult> syncCallback;
             private readonly Func<T, Task<TResult>> asyncCallback;
 
-            private ResponseHandler(Func<T, TResult> syncCallback=null, Func<T, Task<TResult>> asyncCallback=null)
+            private ResponseHandler(Func<T, TResult> syncCallback = null, Func<T, Task<TResult>> asyncCallback = null)
             {
                 this.syncCallback = syncCallback;
                 this.asyncCallback = asyncCallback;
             }
 
-            internal static ResponseHandler<T, TResult> Sync(Func<T, TResult> syncCallback) 
+            internal static ResponseHandler<T, TResult> Sync(Func<T, TResult> syncCallback)
                 => new ResponseHandler<T, TResult>(syncCallback: syncCallback);
 
-            internal static ResponseHandler<T, TResult> ASync(Func<T, Task<TResult>> asyncCallback) 
+            internal static ResponseHandler<T, TResult> ASync(Func<T, Task<TResult>> asyncCallback)
                 => new ResponseHandler<T, TResult>(asyncCallback: asyncCallback);
 
             public async Task<TResult> HandleAsync(XtResult<T> incomingRequest)
@@ -218,7 +218,7 @@ namespace heitech.zer0mqXt.core.patterns
                 {
                     // failure to parse or any other exception leads to a non successful response, which then in turn can be handled on the request side
                     _configuration.Logger.Log(new ErrorLogMsg($"Responding to [Request:{typeof(T)}] with [Response:{typeof(TResult)}] did fail: " + ex.Message));
-                    var msgParts = new [] { ex.GetType().Name, ex.Message, ex.StackTrace };
+                    var msgParts = new[] { ex.GetType().Name, ex.Message, ex.StackTrace };
                     var msg = Environment.NewLine + string.Join(Environment.NewLine, msgParts);
                     response = RequestReplyMessage<TResult>.FromError(_configuration, msg);
                 }

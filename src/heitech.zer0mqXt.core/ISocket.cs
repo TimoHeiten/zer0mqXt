@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using heitech.zer0mqXt.core.patterns;
 
 namespace heitech.zer0mqXt.core
 {
@@ -9,6 +10,10 @@ namespace heitech.zer0mqXt.core
     ///</summary>
     public interface ISocket : IDisposable
     { 
+
+        Publisher GetPublisher();
+        Subscriber GetSubscriber();
+
         ///<summary>
         /// Try to send a Request with the given configuration and invoke the appropriate callback on success or failure
         ///</summary>

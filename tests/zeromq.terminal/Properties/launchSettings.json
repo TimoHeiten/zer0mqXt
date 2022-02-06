@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "zeromq.terminal": {
+      "commandName": "Project",
+      "commandLineArgs": "s"
+    }
+  }
+}

@@ -10,8 +10,8 @@ namespace heitech.zer0mqXt.core.transport
     {
         protected ISerializerAdapter _serializer;
         protected SocketConfiguration _configuration;
-        protected byte[] TypeFrame => _serializer.Serialize(typeof(TMessage).TypeFrameName());
-        protected byte[] Payload { get; private set;}
+        protected byte[] TypeFrame => CreateTypeFrame(_serializer);
+        protected byte[] Payload { get; private set; }
         public TMessage Content { get; private set; }
 
         private protected Message(SocketConfiguration configuration, TMessage message)
@@ -34,6 +34,8 @@ namespace heitech.zer0mqXt.core.transport
         {
             return self.ToNetMqMessage();
         }
+
+        public static byte[] CreateTypeFrame(ISerializerAdapter serializer) => serializer.Serialize(typeof(TMessage).TypeFrameName());
     }
 
     public static class MessageParser
@@ -46,7 +48,7 @@ namespace heitech.zer0mqXt.core.transport
             {
                 var exc = ZeroMqXtSocketException.MissedExpectedFrameCount(msg.FrameCount, expectedCount: 2);
                 configuration.Logger.Log(new DebugLogMsg(exc.Message));
-                return XtResult<TMessage>.Failed(ZeroMqXtSocketException.MissedExpectedFrameCount(msg.FrameCount, expectedCount: 2));
+                return XtResult<TMessage>.Failed(exc);
             }
             
             var receivedType = configuration.Serializer.Deserialize<string>(msg.First.ToByteArray());
@@ -58,7 +60,7 @@ namespace heitech.zer0mqXt.core.transport
                 var instance = configuration.Serializer.Deserialize<TMessage>(msg.Last.ToByteArray());
                 return XtResult<TMessage>.Success(instance, operation: operation);
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 return XtResult<TMessage>.Failed(ex, operation: operation);
             }

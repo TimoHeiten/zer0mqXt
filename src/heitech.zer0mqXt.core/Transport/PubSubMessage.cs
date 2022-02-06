@@ -6,7 +6,8 @@ namespace heitech.zer0mqXt.core.transport
     internal class PubSubMessage<TMessage> : Message<TMessage>
         where TMessage : class
     {
-        public PubSubMessage(SocketConfiguration configuration, TMessage message) 
+        private readonly string _topicFrame;
+        public PubSubMessage(SocketConfiguration configuration, TMessage message, string topicFrame) 
             : base(configuration, message)
         { }
 
@@ -14,7 +15,7 @@ namespace heitech.zer0mqXt.core.transport
         {
             var msg = new NetMQMessage();
 
-            msg.Append(TypeFrame);
+            msg.Append(_configuration.Serializer.Serialize(_topicFrame));
             msg.Append(Payload);
 
             return msg;

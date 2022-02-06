@@ -1,10 +1,14 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
-using System;
 using heitech.zer0mqXt.core.infrastructure;
-using zeromq.terminal.RqRepTests;
+using NetMQ;
+using NetMQ.Sockets;
+using Newtonsoft.Json;
 using zeromq.terminal.PubSubTests;
+using zeromq.terminal.RqRepTests;
 
 namespace zeromq.terminal
 {
@@ -42,10 +46,69 @@ namespace zeromq.terminal
             return Task.CompletedTask;
         }
 
+        private class Msg { public string Content { get; set; } }
+
         static async Task Main(string[] args)
         {
-            string key = "bus-all";//;args.FirstOrDefault() ?? HELP;
-            var actions = args.Where(x => _terminalActions.ContainsKey(x)).Select((x, index) => 
+            var socket = heitech.zer0mqXt.core.Main.Zer0Mq.Go();
+            if (args.FirstOrDefault() == "p")
+            {
+                var pubs = socket.BuildWithTcp("localhost", "4580");
+                var lisher = pubs.GetPublisher();
+
+                int count = 100;
+                while (count > 0)
+                {
+                    lisher.Send<Msg>(new Msg { Content = "from new version" }, "TopicA");
+                    count--;
+                    await Task.Delay(500);
+                }
+
+                lisher.Dispose();
+            }
+            else
+            {
+                try
+                {
+                    var sub = socket.BuildWithTcp("localhost", "4580").GetSubscriber();
+                    sub.RegisterSubscriber<Msg>(callback: m => System.Console.WriteLine($"handled msg: {m.Content}"), "TopicA");
+                    
+                    Console.ReadKey();
+                    sub.Dispose();
+                }
+                catch (System.Exception ex)
+                {
+                    System.Console.WriteLine(ex);
+                }
+                // Console.WriteLine("Subscriber started for Topic : {0}", "TopicA");
+                // using (var subSocket = new SubscriberSocket())
+                // {
+                //     subSocket.Options.ReceiveHighWatermark = 1000;
+                //     subSocket.Connect("tcp://localhost:4580");
+                //     subSocket.Subscribe("");
+                //     Console.WriteLine("Subscriber socket connecting...");
+                //     while (true)
+                //     {
+                //         var msg = subSocket.ReceiveMultipartMessage(2);
+
+                //         string json = msg.Last().ToString();
+                //         System.Console.WriteLine(json);
+                //     }
+                // }
+                Console.ReadLine();
+            }
+
+            return;
+            /*
+             
+
+                 
+            
+            */
+
+
+            string key = args.FirstOrDefault() ?? HELP;
+            var actions = args.Where(x => _terminalActions.ContainsKey(x)).Select((x, index) =>
             {
                 var configuration = BuildConfig(args, index);
                 return ExecuteScenario(x, configuration);
@@ -74,9 +137,11 @@ namespace zeromq.terminal
         {
             var version = args.FirstOrDefault();
             var protocol = args.LastOrDefault();
-            SocketConfiguration configuration = SocketConfiguration.InprocConfig($"this-inproc-sir-{Guid.NewGuid()}");
+            var configuration = SocketConfiguration.InprocConfig($"this-inproc-sir-{Guid.NewGuid()}");
+
             if (protocol != null && protocol != version)
                 configuration = SocketConfiguration.TcpConfig($"555{index}");
+
             configuration.Timeout = TimeSpan.FromSeconds(2);
             return configuration;
         }

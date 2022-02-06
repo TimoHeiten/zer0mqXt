@@ -13,12 +13,17 @@ namespace heitech.zer0mqXt.core.Main
         private readonly PubSub _pubSub;
         private readonly SendReceive _sendReceive;
 
+        private readonly Func<Publisher> _factory;
+        private readonly Func<Subscriber> _subfactory;
+
         ///<inheritdoc/>
         internal Socket(SocketConfiguration config) 
         {
             _rqRep = new RqRep(config);
             _pubSub = new PubSub(config);
             _sendReceive = new SendReceive(config);
+            _factory = () => new Publisher(config);
+            _subfactory = () => new Subscriber(config);
         }
 
         public void Dispose()
@@ -38,8 +43,9 @@ namespace heitech.zer0mqXt.core.Main
         public async Task PublishAsync<TMessage>(TMessage message) 
             where TMessage : class, new()
         {
+            System.Console.WriteLine("publishes");
             var xtResult = await _pubSub.PublishAsync(message).ConfigureAwait(false);
-
+            System.Console.WriteLine($"{xtResult.IsSuccess} - publishsuccss?");
             ThrowOnNonSuccess(xtResult);
         }
 
@@ -163,6 +169,16 @@ namespace heitech.zer0mqXt.core.Main
         {
             var xtResult = _sendReceive.SetupReceiverAsync(asyncCallack, token);
             return xtResult.IsSuccess;
+        }
+
+        public Publisher GetPublisher()
+        {
+            return _factory();
+        }
+
+        public Subscriber GetSubscriber()
+        {
+            return _subfactory();
         }
     }
 }

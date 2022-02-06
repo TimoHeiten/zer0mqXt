@@ -9,25 +9,24 @@ using NetMQ.Sockets;
 
 namespace heitech.zer0mqXt.core.patterns
 {
-    // FIXME currently only works correctly for inproc 
     internal class PubSub : IDisposable
     {
         private readonly SocketConfiguration _configuration;
-        private readonly object _concurrencyToken = new object();
-        private readonly List<IDisposable> _handlers = new List<IDisposable>();
+        private readonly object _concurrencyToken = new();
+        private readonly List<IDisposable> _handlers = new();
         public PubSub(SocketConfiguration configuration)
         {
             _configuration = configuration;
         }
 
-        private PublisherSocket _publisherSocket;
+        private PublisherSocket _publisherSocket = new PublisherSocket();
 
         internal void PrimePublisher()
         {
             try
             {
                 _publisherSocket = new PublisherSocket();
-                _publisherSocket.Bind(_configuration.Address());
+                _publisherSocket.Connect(_configuration.Address(_publisherSocket));
             }
             catch (Exception ex)
             {
@@ -36,48 +35,60 @@ namespace heitech.zer0mqXt.core.patterns
             }
         }
 
+        private bool _isSetup => _publisherSocket != null;
+
 
         #region Publishing
-        public async Task<XtResult<TMessage>> PublishAsync<TMessage>(TMessage message)
+        public Task<XtResult<TMessage>> PublishAsync<TMessage>(TMessage message)
             where TMessage : class, new()
         {
-            const string operationName = "publish";
-            if (_publisherSocket == null)
+            if (!_isSetup)
             {
-                const string errorMsg = "publisherSocket was not primed (setup connection via NetMQ.Bind). When creating a Zer0MQ Bus, make sure to build it with UsePublisher.";
-                _configuration.Logger.Log(new ErrorLogMsg(errorMsg));
-                throw new NetMQException(errorMsg);
+                System.Console.WriteLine("setup publisher");
+                _publisherSocket = new PublisherSocket();
+                _publisherSocket.Bind("tcp://*:4580");//_configuration.Address(_publisherSocket));
             }
 
-            var retry = new Retry(_configuration);
+            var typeFrame = typeof(TMessage).Name;
+            _publisherSocket.SendMoreFrame("TopicA").SendFrame("abcaffeschnee");
 
-            try
-            {
-                Func<Task<XtResult<TMessage>>> retryableAction = async () => await Task.Run(() => 
-                {
-                    try
-                    {
-                        var msg = new PubSubMessage<TMessage>(_configuration, message);
-                        _publisherSocket.SendMultipartMessage(msg);
-                    }
-                    catch (Exception ex)
-                    {
-                        return XtResult<TMessage>.Failed(ex, operationName);
-                    }
+            return Task.FromResult<XtResult<TMessage>>(XtResult<TMessage>.Success(message));
 
-                    return XtResult<TMessage>.Success(message, operationName);
-                }).ConfigureAwait(false);
 
-                return await retry.RunAsyncWithRetry(retryableAction);
-            }
-            catch (Exception ex)
-            {
-                return XtResult<TMessage>.Failed(ex, operationName);
-            }
-            finally
-            {
-                _publisherSocket?.Dispose();
-            }
+            // const string operationName = "publish";
+            // if (_publisherSocket == null)
+            // {
+            //     const string errorMsg = "publisherSocket was not primed (setup connection via NetMQ.Bind). When creating a Zer0MQ Bus, make sure to build it with UsePublisher.";
+            //     _configuration.Logger.Log(new ErrorLogMsg(errorMsg));
+            //     throw new NetMQException(errorMsg);
+            // }
+
+            // var retry = new Retry(_configuration);
+
+            // try
+            // {
+            //     async Task<XtResult<TMessage>> retryableAction() => await Task.Run(() =>
+            //     {
+            //         try
+            //         {
+            //             var msg = new PubSubMessage<TMessage>(_configuration, message);
+            //             var typeFrame = Message<TMessage>.CreateTypeFrame<TMessage>(_configuration.Serializer);
+            //             _publisherSocket.SendMoreFrame("TopicA").SendFrame(_configuration.Serializer.Serialize(message));
+            //         }
+            //         catch (Exception ex)
+            //         {
+            //             return XtResult<TMessage>.Failed(ex, operationName);
+            //         }
+
+            //         return XtResult<TMessage>.Success(message, operationName);
+            //     }).ConfigureAwait(false);
+
+            //     return await retry.RunAsyncWithRetry(retryableAction);
+            // }
+            // catch (Exception ex)
+            // {
+            //     return XtResult<TMessage>.Failed(ex, operationName);
+            // }
         }
         #endregion
 
@@ -113,7 +124,7 @@ namespace heitech.zer0mqXt.core.patterns
                     new SubscriberSocket(), 
                     _configuration, 
                     new NetMQ.NetMQPoller(), 
-                    token, 
+                    token,
                     syncCallback: syncCallback, 
                     asyncCallback: asyncCallback
                 );
@@ -123,6 +134,7 @@ namespace heitech.zer0mqXt.core.patterns
                 // dispose handler when an exception was registered during setup
                 if (handlerException is not null) 
                 {
+                    _configuration.Logger.Log(new ErrorLogMsg(handlerException.Message));
                     next.Dispose();
                     eventHandle.Set();
                     return;
@@ -175,13 +187,17 @@ namespace heitech.zer0mqXt.core.patterns
             {
                 try
                 {
+                    System.Console.WriteLine("subscribe socket");
                     _socketDelegate = async (s, arg) => await HandleAsync().ConfigureAwait(false);
                     _socket.ReceiveReady += _socketDelegate;
                     
-                    // todo use actual topics instead of catchall
-                    string catchAllTopic = "";
                     _socket.Connect(_configuration.Address());
-                    _socket.Subscribe(catchAllTopic);
+                    
+                    // subscribe to the topic as depicted by the typeframe (first frame published is always the topic, and in our case it will be the type.Fullname)
+                    byte[] typeFrame = Message<TMessage>.CreateTypeFrame(_configuration.Serializer);
+                    string topic = _configuration.Serializer.Encoding.GetString(typeFrame);
+
+                    _socket.Subscribe("TopicA");
                     _configuration.Logger.Log(new DebugLogMsg($"subscribed to [{typeof(TMessage)}]"));
                     _poller.Add(_socket);
                     _poller.RunAsync();
@@ -206,15 +222,19 @@ namespace heitech.zer0mqXt.core.patterns
 
                 try
                 {
-                    NetMQMessage received = _socket.ReceiveMultipartMessage();
-                    _configuration.Logger.Log(new DebugLogMsg($"handling message for [Subscriber:{typeof(TMessage)}]"));
-                    var actualMessage = received.ParsePubSubMessage<TMessage>(_configuration);
+                    string messageTopicReceived = _socket.ReceiveFrameString();
+                    var messageReceived = _socket.ReceiveFrameString();
+                    Console.WriteLine(messageReceived);
+                    System.Console.WriteLine($"body: {messageReceived}");
 
-                    var msg = actualMessage.IsSuccess ? actualMessage.GetResult() : new TMessage();
-                    if (this._asyncCallback is null)
-                        _syncCallback(msg);
-                    else
-                        await _asyncCallback(msg).ConfigureAwait(false);
+                    // _configuration.Logger.Log(new DebugLogMsg($"handling message for [Subscriber:{typeof(TMessage)}]"));
+                    // var actualMessage = received.ParsePubSubMessage<TMessage>(_configuration);
+
+                    // var msg = actualMessage.IsSuccess ? actualMessage.GetResult() : new TMessage();
+                    // if (this._asyncCallback is null)
+                    //     _syncCallback(msg);
+                    // else
+                    //     await _asyncCallback(msg).ConfigureAwait(false);
                 }
                 catch (NetMQ.TerminatingException trmnt)
                 {
