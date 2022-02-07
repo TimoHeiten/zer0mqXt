@@ -6,7 +6,7 @@ namespace heitech.zer0mqXt.core.transport
     internal static class PubSubMessageHelper
     {
         public static string GetTopicFrame<TMessage>(this SocketConfiguration configuration, string topic)
-            => topic ?? configuration.Serializer.Encoding.GetString(configuration.Serializer.Serialize(typeof(TMessage).TypeFrameName()));
+            => topic ?? typeof(TMessage).TypeFrameName();
 
         public static byte[] PubSubMessage<TMessage>(this SocketConfiguration configuration, TMessage message)
             where TMessage : class, new()

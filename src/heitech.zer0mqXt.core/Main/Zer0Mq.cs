@@ -5,7 +5,7 @@ using heitech.zer0mqXt.core.infrastructure;
 namespace heitech.zer0mqXt.core.Main
 {
     ///<inheritdoc cref="IZer0MqBuilder"/>
-    public class Zer0Mq : IZer0MqBuilder
+    public sealed class Zer0Mq : IZer0MqBuilder
     {
         private bool _isSilent;
         private ILogger _logger;
@@ -52,6 +52,13 @@ namespace heitech.zer0mqXt.core.Main
                 _logger.SetSilent();
 
             return new PatternFactory(configuration);
+        }
+
+        // for test purposes only
+        internal static IPatternFactory From(SocketConfiguration configuration)
+        {
+            var mq = new Zer0Mq();
+            return mq.Build(configuration);
         }
 
         public IZer0MqBuilder SilenceLogger()

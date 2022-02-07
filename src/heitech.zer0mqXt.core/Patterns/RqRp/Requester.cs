@@ -34,7 +34,7 @@ namespace heitech.zer0mqXt.core.patterns.RqRp
             }
             catch (System.Exception ex)
             {
-                return XtResult<IClient>.Failed(ex);
+                return XtResult<IClient>.Failed(ZeroMqXtSocketException.FromException(ex));
             }
         }
 

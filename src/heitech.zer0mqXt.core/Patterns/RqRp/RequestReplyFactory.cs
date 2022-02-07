@@ -17,6 +17,8 @@ namespace heitech.zer0mqXt.core.RqRp
             var result = Client.TryInitialize(configuration);
             if (result.IsSuccess)
                 return configuration.Create<IClient>(_concurrencyToken, _requestCache, (c) => result.GetResult());
+            else if (_requestCache.TryGetValue(configuration, out IClient client))
+                return client;
 
             configuration.Logger.Log(new ErrorLogMsg($"Failed to create Requester at address : [{configuration.Address()}]"));
             throw result.Exception;
@@ -24,20 +26,6 @@ namespace heitech.zer0mqXt.core.RqRp
 
         public static IResponder CreateResponder(SocketConfiguration configuration)
             => configuration.Create<IResponder>(_concurrencyToken, _responderCache, (c) => new Responder(c));
-
-        public static T Create<T>(SocketConfiguration configuration, Dictionary<SocketConfiguration, T> cache, Func<SocketConfiguration, T> factory)
-        {
-            lock (_concurrencyToken)
-            {
-                if (cache.TryGetValue(configuration, out T item))
-                    return item;
-
-                item = factory(configuration);
-                cache.Add(configuration, item);
-
-                return item;
-            }
-        }
 
         internal static void KillRequester(SocketConfiguration configuration)
             => configuration.Kill<IClient>(_concurrencyToken, _requestCache);

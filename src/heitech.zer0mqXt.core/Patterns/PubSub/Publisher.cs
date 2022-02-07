@@ -34,7 +34,7 @@ namespace heitech.zer0mqXt.core.PubSub
             catch (System.Exception ex)
             {
                 configuration.Logger.Log(new ErrorLogMsg($"Binding Publisher at [{address}] failed:{Environment.NewLine}" + ex));
-                return XtResult<IPublisher>.Failed(ex);
+                return XtResult<IPublisher>.Failed(ZeroMqXtSocketException.FromException(ex));
             }
         }
 

@@ -28,7 +28,8 @@ namespace heitech.zer0mqXt.core.patterns
                 await Task.Delay(_configuration.Timeout).ConfigureAwait(false);
                 try
                 {
-                    tryToReconnect();
+                    // todo
+                    // tryToReconnect();
                     return await retryableAction().ConfigureAwait(false);
                 }
                 catch (System.Exception inner)

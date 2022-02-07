@@ -8,9 +8,12 @@ namespace heitech.zer0mqXt.core.utils
         public static void DisposeOf(this NetMQPoller poller, NetMQSocket anySocket, EventHandler<NetMQSocketEventArgs> receiveDelegate)
         {
             anySocket.ReceiveReady -= receiveDelegate;
-            poller.StopAsync();
-            poller.RemoveAndDispose(anySocket);
-            poller.Dispose();
+            if (poller != null && poller.IsRunning)
+            {
+                poller.StopAsync();
+                poller.RemoveAndDispose(anySocket);
+                poller.Dispose();
+            }
         }
     }
 }

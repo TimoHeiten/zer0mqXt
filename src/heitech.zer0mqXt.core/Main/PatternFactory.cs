@@ -1,4 +1,3 @@
-using System;
 using heitech.zer0mqXt.core.infrastructure;
 using heitech.zer0mqXt.core.PubSub;
 using heitech.zer0mqXt.core.RqRp;
@@ -20,13 +19,9 @@ namespace heitech.zer0mqXt.core.Main
             => PubSubFactory.CreateSubscriber(_configuration);
 
         public IReceiver CreateReceiver()
-        {
-            throw new NotImplementedException();
-        }
+            => new Receiver(_configuration);
         public ISender CreateSender()
-        {
-            throw new NotImplementedException();
-        }
+            => new Sender(_configuration);
 
         public IClient CreateClient()
             => RequestReplyFactory.CreateClient(_configuration);

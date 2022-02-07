@@ -36,7 +36,12 @@ namespace heitech.zer0mqXt.core.PubSub
                 {
                     var handler = MessageHandler<TMessage>.Sync(_configuration, callback);
                     _isSetup = true;
-                    return SetupMessageHandler<TMessage>(handler, topic, () => { onError?.Invoke(); return Task.CompletedTask; }, cancellationToken);
+                    return SetupMessageHandler<TMessage>(
+                        handler, 
+                        topic, 
+                        () => { onError?.Invoke(); return Task.CompletedTask; }, 
+                        cancellationToken
+                    );
                 }
                  return XtResult.Failed(new ZeroMqXtSocketException("already setup this subscriber! Create a New One instead"), "setup-subscriber");
             }
