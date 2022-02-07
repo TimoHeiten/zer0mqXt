@@ -1,203 +1,201 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-using heitech.zer0mqXt.core.infrastructure;
-using heitech.zer0mqXt.core.patterns;
-using NetMQ;
+// todo
+/*
+    this aint core no more,
+    when we want to have managed bus functionality, this will be the heitech.zer0mqXt.managed namespace
+*/
 
-namespace heitech.zer0mqXt.core.Main
-{
-    ///<inheritdoc cref="ISocket"/>
-    internal class Socket : ISocket
-    {
-        private readonly object _token = new();
-        private readonly RqRep _rqRep;
-        private Publisher _publisher;
-        private Subscriber _subscriber;
-        private readonly SendReceive _sendReceive;
-        private readonly Func<Publisher> _factory;
-        private readonly Func<Subscriber> _subfactory;
+// using System;
+// using System.Collections.Generic;
+// using System.Threading;
+// using System.Threading.Tasks;
+// using heitech.zer0mqXt.core.infrastructure;
+// using heitech.zer0mqXt.core.patterns;
+// using NetMQ;
 
-        ///<inheritdoc/>
-        internal Socket(SocketConfiguration config)
-        {
-            _rqRep = new RqRep(config);
-            _sendReceive = new SendReceive(config);
-            _factory = () => new Publisher(config);
-            _subfactory = () => new Subscriber(config);
-        }
+// namespace heitech.zer0mqXt.core.Main
+// {
+//     // todo! introduce an instance per pattern, so the bus does not dispose something like the subscriber on accident
+//     ///<inheritdoc cref="ISocket"/>
+//     internal class Socket : ISocket
+//     {
+//         private readonly object _token = new();
+//         private readonly RqRep _rqRep;
+//         private Publisher _publisher;
+//         private SubscriberV2Container _subscriber;
+//         private readonly SendReceive _sendReceive;
+//         private readonly Func<Publisher> _factory;
 
-        public void Dispose()
-        {
-            _rqRep.Dispose();
-            _sendReceive.Dispose();
-            _publisher?.Dispose();
-            _subscriber?.Dispose();
-        }
+//         ///<inheritdoc/>
+//         internal Socket(SocketConfiguration config)
+//         {
+//             _rqRep = new RqRep(config);
+//             _sendReceive = new SendReceive(config);
+//             _factory = () => new Publisher(config);
+//             _subscriber = new SubscriberV2Container(config);
+//         }
 
-        public async Task PublishAsync<TMessage>(TMessage message)
-            where TMessage : class, new()
-        {
-            lock (_token)
-            {
-                if (_publisher == null)
-                {
-                    _publisher = _factory();
-                }
-            }
+//         public void Dispose()
+//         {
+//             _rqRep.Dispose();
+//             _sendReceive.Dispose();
+//             _publisher?.Dispose();
+//             _subscriber?.Dispose();
+//         }
 
-            var xtResult = await _publisher.SendAsync(message);
-            ThrowOnNonSuccess(xtResult);
-        }
+//         public async Task PublishAsync<TMessage>(TMessage message)
+//             where TMessage : class, new()
+//         {
+//             lock (_token)
+//             {
+//                 if (_publisher == null)
+//                 {
+//                     _publisher = _factory();
+//                 }
+//             }
 
-        public void RegisterAsyncSubscriber<TMessage>(Func<TMessage, Task> asyncCallback, CancellationToken cancellationToken = default)
-            where TMessage : class, new()
-        {
-            Subscriber subscriber = GetSubscriber();
-            XtResult result = subscriber.RegisterAsyncSubscriber(asyncCallback, null, cancellationToken);
-            ThrowOnNonSuccess(result);
-        }
+//             var xtResult = _publisher.Send(message);
+//             ThrowOnNonSuccess(xtResult);
+//             await Task.CompletedTask;
+//         }
 
-        public void RegisterSubscriber<TMessage>(Action<TMessage> callback, CancellationToken cancellationToken = default)
-            where TMessage : class, new()
-        {
-            Subscriber subscriber = GetSubscriber();
-            XtResult result = subscriber.RegisterSubscriber(callback, null, cancellationToken);
-            ThrowOnNonSuccess(result);
-        }
+//         public void RegisterAsyncSubscriber<TMessage>(Func<TMessage, Task> asyncCallback, CancellationToken cancellationToken = default)
+//             where TMessage : class, new()
+//         {
+//             throw new NotImplementedException();
+//             // ThrowOnNonSuccess(result);
+//         }
 
-        public async Task<TResult> RequestAsync<TRequest, TResult>(TRequest request)
-            where TRequest : class, new()
-            where TResult : class, new()
-        {
-            var xtResult = await _rqRep.RequestAsync<TRequest, TResult>(request).ConfigureAwait(false);
-            ThrowOnNonSuccess(xtResult);
+//         public void RegisterSubscriber<TMessage>(Action<TMessage> callback, string topic = null, CancellationToken cancellationToken = default)
+//             where TMessage : class, new()
+//         {
+//             XtResult result = _subscriber.Register<TMessage>(callback, topic, cancellationToken);
+//             ThrowOnNonSuccess(result);
+//         }
 
-            return xtResult.GetResult();
-        }
+//         public async Task<TResult> RequestAsync<TRequest, TResult>(TRequest request)
+//             where TRequest : class, new()
+//             where TResult : class, new()
+//         {
+//             var xtResult = await _rqRep.RequestAsync<TRequest, TResult>(request).ConfigureAwait(false);
+//             ThrowOnNonSuccess(xtResult);
 
-        public void Respond<TRequest, TResult>(Func<TRequest, TResult> callback, CancellationToken cancellationToken = default)
-            where TRequest : class, new()
-            where TResult : class, new()
-        {
-            var xtResult = _rqRep.Respond<TRequest, TResult>(callback, cancellationToken);
-            ThrowOnNonSuccess(xtResult);
-        }
+//             return xtResult.GetResult();
+//         }
 
-        public void RespondAsync<TRequest, TResult>(Func<TRequest, Task<TResult>> callback, CancellationToken cancellationToken = default)
-            where TRequest : class, new()
-            where TResult : class, new()
-        {
-            var xtResult = _rqRep.RespondAsync<TRequest, TResult>(callback, cancellationToken);
-            ThrowOnNonSuccess(xtResult);
-        }
+//         public void Respond<TRequest, TResult>(Func<TRequest, TResult> callback, CancellationToken cancellationToken = default)
+//             where TRequest : class, new()
+//             where TResult : class, new()
+//         {
+//             var xtResult = _rqRep.Respond<TRequest, TResult>(callback, cancellationToken);
+//             ThrowOnNonSuccess(xtResult);
+//         }
 
-        public async Task SendAsync<TMessage>(TMessage message)
-            where TMessage : class, new()
-        {
-            var xtResult = await _sendReceive.SendAsync(message).ConfigureAwait(false);
+//         public void RespondAsync<TRequest, TResult>(Func<TRequest, Task<TResult>> callback, CancellationToken cancellationToken = default)
+//             where TRequest : class, new()
+//             where TResult : class, new()
+//         {
+//             var xtResult = _rqRep.RespondAsync<TRequest, TResult>(callback, cancellationToken);
+//             ThrowOnNonSuccess(xtResult);
+//         }
 
-            ThrowOnNonSuccess(xtResult);
-        }
+//         public async Task SendAsync<TMessage>(TMessage message)
+//             where TMessage : class, new()
+//         {
+//             var xtResult = await _sendReceive.SendAsync(message).ConfigureAwait(false);
 
-        public void Receiver<TMessage>(Action<TMessage> callback, CancellationToken token = default)
-            where TMessage : class, new()
-        {
-            var xtResult = _sendReceive.SetupReceiver(callback, token);
+//             ThrowOnNonSuccess(xtResult);
+//         }
 
-            ThrowOnNonSuccess(xtResult);
-        }
+//         public void Receiver<TMessage>(Action<TMessage> callback, CancellationToken token = default)
+//             where TMessage : class, new()
+//         {
+//             var xtResult = _sendReceive.SetupReceiver(callback, token);
 
-        public void ReceiverAsync<TMessage>(Func<TMessage, Task> asyncCallack, CancellationToken token = default)
-            where TMessage : class, new()
-        {
-            var xtResult = _sendReceive.SetupReceiverAsync(asyncCallack, token);
+//             ThrowOnNonSuccess(xtResult);
+//         }
 
-            ThrowOnNonSuccess(xtResult);
-        }
+//         public void ReceiverAsync<TMessage>(Func<TMessage, Task> asyncCallack, CancellationToken token = default)
+//             where TMessage : class, new()
+//         {
+//             var xtResult = _sendReceive.SetupReceiverAsync(asyncCallack, token);
 
-        private void ThrowOnNonSuccess(XtResultBase xtResult)
-        {
-            if (xtResult.IsSuccess == false)
-                throw ZeroMqXtSocketException.FromException(xtResult.Exception);
-        }
+//             ThrowOnNonSuccess(xtResult);
+//         }
 
-        public async Task<bool> TryRequestAsync<TRequest, TResult>(TRequest request, Func<TResult, Task> successCallback, Func<Task> failureCallback)
-           where TRequest : class, new()
-           where TResult : class, new()
-        {
-            var xtResult = await _rqRep.RequestAsync<TRequest, TResult>(request).ConfigureAwait(false);
+//         private void ThrowOnNonSuccess(XtResultBase xtResult)
+//         {
+//             if (xtResult.IsSuccess == false)
+//                 throw ZeroMqXtSocketException.FromException(xtResult.Exception);
+//         }
 
-            if (xtResult.IsSuccess)
-                await successCallback(xtResult.GetResult()).ConfigureAwait(false);
-            else
-                await failureCallback().ConfigureAwait(false);
+//         public async Task<bool> TryRequestAsync<TRequest, TResult>(TRequest request, Func<TResult, Task> successCallback, Func<Task> failureCallback)
+//            where TRequest : class, new()
+//            where TResult : class, new()
+//         {
+//             var xtResult = await _rqRep.RequestAsync<TRequest, TResult>(request).ConfigureAwait(false);
 
-            return xtResult.IsSuccess;
-        }
+//             if (xtResult.IsSuccess)
+//                 await successCallback(xtResult.GetResult()).ConfigureAwait(false);
+//             else
+//                 await failureCallback().ConfigureAwait(false);
 
-        public bool TryRespond<TRequest, TResult>(Func<TRequest, TResult> callback, CancellationToken cancellationToken = default)
-            where TRequest : class, new()
-            where TResult : class, new()
-        {
-            var xtResult = _rqRep.Respond<TRequest, TResult>(callback, cancellationToken);
+//             return xtResult.IsSuccess;
+//         }
 
-            return xtResult.IsSuccess;
+//         public bool TryRespond<TRequest, TResult>(Func<TRequest, TResult> callback, CancellationToken cancellationToken = default)
+//             where TRequest : class, new()
+//             where TResult : class, new()
+//         {
+//             var xtResult = _rqRep.Respond<TRequest, TResult>(callback, cancellationToken);
 
-        }
+//             return xtResult.IsSuccess;
 
-        public bool TryRespondAsync<TRequest, TResult>(Func<TRequest, Task<TResult>> callback, CancellationToken cancellationToken = default)
-            where TRequest : class, new()
-            where TResult : class, new()
-        {
-            var xtResult = _rqRep.RespondAsync<TRequest, TResult>(callback, cancellationToken);
+//         }
 
-            return xtResult.IsSuccess;
-        }
+//         public bool TryRespondAsync<TRequest, TResult>(Func<TRequest, Task<TResult>> callback, CancellationToken cancellationToken = default)
+//             where TRequest : class, new()
+//             where TResult : class, new()
+//         {
+//             var xtResult = _rqRep.RespondAsync<TRequest, TResult>(callback, cancellationToken);
 
-        public async Task<bool> TrySendAsync<TMessage>(TMessage message)
-            where TMessage : class, new()
-        {
-            var xtResult = await _sendReceive.SendAsync(message).ConfigureAwait(false);
-            return xtResult.IsSuccess;
-        }
+//             return xtResult.IsSuccess;
+//         }
 
-        public bool TryReceive<TMessage>(Action<TMessage> callback, CancellationToken token = default) where TMessage : class, new()
-        {
-            var xtResult = _sendReceive.SetupReceiver(callback, token);
-            return xtResult.IsSuccess;
-        }
+//         public async Task<bool> TrySendAsync<TMessage>(TMessage message)
+//             where TMessage : class, new()
+//         {
+//             var xtResult = await _sendReceive.SendAsync(message).ConfigureAwait(false);
+//             return xtResult.IsSuccess;
+//         }
 
-        public bool TryReceiveasync<TMessage>(Func<TMessage, Task> asyncCallack, CancellationToken token = default) where TMessage : class, new()
-        {
-            var xtResult = _sendReceive.SetupReceiverAsync(asyncCallack, token);
-            return xtResult.IsSuccess;
-        }
+//         public bool TryReceive<TMessage>(Action<TMessage> callback, CancellationToken token = default) where TMessage : class, new()
+//         {
+//             var xtResult = _sendReceive.SetupReceiver(callback, token);
+//             return xtResult.IsSuccess;
+//         }
 
-        private Subscriber GetSubscriber()
-        {
-            lock (_token)
-            {
-                if (_subscriber == null)
-                {
-                    _subscriber = _subfactory();
-                }
-            }
-            return _subscriber;
-        }
+//         public bool TryReceiveasync<TMessage>(Func<TMessage, Task> asyncCallack, CancellationToken token = default) where TMessage : class, new()
+//         {
+//             var xtResult = _sendReceive.SetupReceiverAsync(asyncCallack, token);
+//             return xtResult.IsSuccess;
+//         }
 
-        public IPublisher GetPublisher()
-        {
-            lock (_token)
-            {
-                if (_publisher == null)
-                {
-                    _publisher = _factory();
-                    _publisher.SetupPublisher();
-                }
-            }
-            return _publisher;
-        }
-    }
-}
+//         public IPublisher GetPublisher()
+//         {
+//             lock (_token)
+//             {
+//                 if (_publisher == null)
+//                 {
+//                     _publisher = _factory();
+//                     _publisher.SetupPublisher();
+//                 }
+//             }
+//             return _publisher;
+//         }
+
+//         public Subscriber GetSub()
+//         {
+//             throw new NotImplementedException();
+//         }
+//     }
+// }

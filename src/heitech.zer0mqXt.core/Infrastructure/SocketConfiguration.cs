@@ -6,7 +6,7 @@ using NetMQ.Sockets;
 
 namespace heitech.zer0mqXt.core.infrastructure
 {
-    internal abstract class SocketConfiguration
+    internal abstract class SocketConfiguration : IEquatable<SocketConfiguration>
     {
         ///<summary>
         /// Uses Newtonsoft by default. But you can also use Utf8Json or supply your own serialization
@@ -47,6 +47,15 @@ namespace heitech.zer0mqXt.core.infrastructure
         public static SocketConfiguration TcpConfig(string port, string host) => new Tcp(port, host);
 
         public static void CleanUp() {  }
+
+        public bool Equals(SocketConfiguration other)
+            => other == null || other.Address() == this.Address();
+
+        public override bool Equals(object obj)
+            => Equals(obj as SocketConfiguration);
+        
+        public override int GetHashCode()
+            => Address().GetHashCode();
 
         public sealed class Tcp : SocketConfiguration
         {

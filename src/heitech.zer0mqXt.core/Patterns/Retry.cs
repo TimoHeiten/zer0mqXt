@@ -15,7 +15,7 @@ namespace heitech.zer0mqXt.core.patterns
         ///<summary>
         /// Register your retryable callback here
         ///</summary>
-        internal async Task<XtResult<T>> RunAsyncWithRetry<T>(Func<Task<XtResult<T>>> retryableAction, string operationName = "request")
+        internal async Task<XtResult<T>> RunAsyncWithRetry<T>(Func<Task<XtResult<T>>> retryableAction, string operationName = "request", Action tryToReconnect = null)
             where T : class
         {
             try
@@ -28,6 +28,7 @@ namespace heitech.zer0mqXt.core.patterns
                 await Task.Delay(_configuration.Timeout).ConfigureAwait(false);
                 try
                 {
+                    tryToReconnect();
                     return await retryableAction().ConfigureAwait(false);
                 }
                 catch (System.Exception inner)

@@ -36,13 +36,13 @@ namespace heitech.zer0mqXt.core.Main
         ///</summary>
         public static IZer0MqBuilder Go() => new Zer0Mq();
 
-        public ISocket BuildWithInProc(string pipeName)
+        public IPatternFactory BuildWithInProc(string pipeName)
             => Build(new SocketConfiguration.Inproc(pipeName));
 
-        public ISocket BuildWithTcp(string host, string port)
+        public IPatternFactory BuildWithTcp(string host, string port)
             => Build(new SocketConfiguration.Tcp(port:port, host:host));
 
-        private ISocket Build(SocketConfiguration configuration)
+        private IPatternFactory Build(SocketConfiguration configuration)
         {
             configuration.Logger = _logger;
             configuration.Timeout = _timeOut;
@@ -51,9 +51,7 @@ namespace heitech.zer0mqXt.core.Main
             if (_isSilent)
                 _logger.SetSilent();
 
-            var socket = new Socket(configuration);
-
-            return socket;
+            return new PatternFactory(configuration);
         }
 
         public IZer0MqBuilder SilenceLogger()

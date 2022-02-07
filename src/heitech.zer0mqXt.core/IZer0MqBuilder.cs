@@ -33,7 +33,7 @@ namespace heitech.zer0mqXt.core
         ///</summary>
         IZer0MqBuilder SetTimeOut(TimeSpan timeOut);
 
-        ISocket BuildWithTcp(string host, string port);
-        ISocket BuildWithInProc(string pipeName);
+        IPatternFactory BuildWithTcp(string host, string port);
+        IPatternFactory BuildWithInProc(string pipeName);
     }
 }

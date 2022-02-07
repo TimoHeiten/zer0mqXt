@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using heitech.zer0mqXt.core.infrastructure;
-using zeromq.terminal.PubSubTests;
-using zeromq.terminal.RqRepTests;
+using heitech.zer0mqXt.core.Main;
+using heitech.zer0mqXt.core.RqRp;
+// using zeromq.terminal.PubSubTests;
+// using zeromq.terminal.RqRepTests;
 
 namespace zeromq.terminal
 {
@@ -19,14 +21,14 @@ namespace zeromq.terminal
         {
             _terminalActions = new Dictionary<string, Func<SocketConfiguration, Task>>
             {
-                ["reqrep"] = RqRepScenarios.RunReqRep,
-                ["cancel"] = RqRepScenarios.CancellationTokenOnRunningTask,
-                ["contest"] = RqRepScenarios.Contest,
-                ["async-server"] = RqRepScenarios.AsyncServer,
-                ["bus-all"] = RqRepScenarios.UseBusInterface,
+                // ["reqrep"] = RqRepScenarios.RunReqRep,
+                // ["cancel"] = RqRepScenarios.CancellationTokenOnRunningTask,
+                // ["contest"] = RqRepScenarios.Contest,
+                // ["async-server"] = RqRepScenarios.AsyncServer,
+                // ["bus-all"] = RqRepScenarios.UseBusInterface,
 
-                ["pubsub"] = PubSubScenarios.SimplePubSub,
-                ["subcancel"] = PubSubScenarios.PubSubWithCancellation,
+                // ["pubsub"] = PubSubScenarios.SimplePubSub,
+                // ["subcancel"] = PubSubScenarios.PubSubWithCancellation,
 
                 [HELP] = ShowHelp
             };
@@ -47,65 +49,39 @@ namespace zeromq.terminal
 
         static async Task Main(string[] args)
         {
-            var socket = heitech.zer0mqXt.core.Main.Zer0Mq.Go();
+            var pattern = heitech.zer0mqXt.core.Main.Zer0Mq.Go().BuildWithTcp("localhost", "4580");
+            System.Console.WriteLine(string.Join(" - ", args));
             if (args.FirstOrDefault() == "p")
             {
-                var pubs = socket.BuildWithTcp("localhost", "4580");
-                var lisher = pubs.GetPublisher();
-
-                int count = 100;
-                while (count > 0)
+                // var requester = RequestReplyFactory.CreateClient(SocketConfiguration.TcpConfig("4577"));
+                // while (true)
+                // {
+                //     var result = await requester.RequestAsync<Msg, MsgV2>(new Msg { Content = "Msgv1 - " });
+                //     System.Console.WriteLine(result.GetResult().Content);
+                // }
+                var publisher = pattern.CreatePublisher();
+                while (true)
                 {
-                    // await lisher.SendAsync<Msg>(new Msg { Content = "v1" });
-                    await lisher.SendAsync<MsgV2>(new MsgV2 { Content = "v2" });
-                    count--;
-                    await Task.Delay(500);
-                    System.Console.WriteLine("proceed?");
-                    Console.ReadKey();
+                    await publisher.SendAsync(new Msg { Content = "publisher greets u" });
+                    Console.ReadLine();
                 }
-
-                pubs.Dispose();
             }
             else
             {
-                try
-                {
-                    var sub = socket.BuildWithTcp("localhost", "4580");
-                    sub.RegisterSubscriber<Msg>(callback: m => System.Console.WriteLine($"handled msg: {m.Content}"));
-                    sub.RegisterSubscriber<MsgV2>(callback: m => System.Console.WriteLine("the other subscriber was called"));
-                    Console.ReadKey();
-                    sub.Dispose();
-                }
-                catch (System.Exception ex)
-                {
-                    System.Console.WriteLine(ex);
-                }
-                // Console.WriteLine("Subscriber started for Topic : {0}", "TopicA");
-                // using (var subSocket = new SubscriberSocket())
-                // {
-                //     subSocket.Options.ReceiveHighWatermark = 1000;
-                //     subSocket.Connect("tcp://localhost:4580");
-                //     subSocket.Subscribe("");
-                //     Console.WriteLine("Subscriber socket connecting...");
-                //     while (true)
-                //     {
-                //         var msg = subSocket.ReceiveMultipartMessage(2);
+                var subscriber = pattern.CreateSubscriber();
+                subscriber.RegisterSubscriber<Msg>(m => System.Console.WriteLine(m.Content + " in callback-1!"));
+                // needs a snd subscriber
+                var sndSubscriber = pattern.CreateSubscriber();
+                sndSubscriber.RegisterSubscriber<Msg>(m => System.Console.WriteLine(m.Content + " in callback-2!"));
 
-                //         string json = msg.Last().ToString();
-                //         System.Console.WriteLine(json);
-                //     }
-                // }
+                // var responder = RequestReplyFactory.CreateResponder(SocketConfiguration.TcpConfig("4577"));
+                // var setupResult = responder.Respond<Msg, MsgV2>(msg => new MsgV2 { Content = msg.Content + "extended by responder" });
+                // var result = responder.Respond<Msg, MsgV2>((s) => new MsgV2());
+                // System.Console.WriteLine($"'{result.IsSuccess}' - Expected was 'False'");
                 Console.ReadLine();
             }
 
             return;
-            /*
-             
-
-                 
-            
-            */
-
 
             string key = args.FirstOrDefault() ?? HELP;
             var actions = args.Where(x => _terminalActions.ContainsKey(x)).Select((x, index) =>
