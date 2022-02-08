@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 using heitech.zer0mqXt.core.infrastructure;
 using heitech.zer0mqXt.core.Main;
 using heitech.zer0mqXt.core.RqRp;
+using zeromq.terminal.PubSubTests;
+using zeromq.terminal.RqRepTests;
 // using zeromq.terminal.PubSubTests;
 // using zeromq.terminal.RqRepTests;
 
@@ -21,14 +23,16 @@ namespace zeromq.terminal
         {
             _terminalActions = new Dictionary<string, Func<SocketConfiguration, Task>>
             {
-                // ["reqrep"] = RqRepScenarios.RunReqRep,
-                // ["cancel"] = RqRepScenarios.CancellationTokenOnRunningTask,
-                // ["contest"] = RqRepScenarios.Contest,
-                // ["async-server"] = RqRepScenarios.AsyncServer,
+                ["reqrep"] = RqRepScenarios.RunReqRep,
+                ["cancel"] = RqRepScenarios.CancellationTokenOnRunningTask,
+                ["contest"] = RqRepScenarios.Contest,
+                ["async-server"] = RqRepScenarios.AsyncServer,
                 // ["bus-all"] = RqRepScenarios.UseBusInterface,
 
-                // ["pubsub"] = PubSubScenarios.SimplePubSub,
-                // ["subcancel"] = PubSubScenarios.PubSubWithCancellation,
+                ["pubsub"] = PubSubScenarios.SimplePubSub,
+                ["subcancel"] = PubSubScenarios.PubSubWithCancellation,
+                ["multiplepubsub"] = PubSubScenarios.MultipleSubscribersOverTcp,
+                ["topicsub"] = PubSubScenarios.SpecificTopicWorks,
 
                 [HELP] = ShowHelp
             };
@@ -49,40 +53,6 @@ namespace zeromq.terminal
 
         static async Task Main(string[] args)
         {
-            var pattern = heitech.zer0mqXt.core.Main.Zer0Mq.Go().BuildWithTcp("localhost", "4580");
-            System.Console.WriteLine(string.Join(" - ", args));
-            if (args.FirstOrDefault() == "p")
-            {
-                // var requester = RequestReplyFactory.CreateClient(SocketConfiguration.TcpConfig("4577"));
-                // while (true)
-                // {
-                //     var result = await requester.RequestAsync<Msg, MsgV2>(new Msg { Content = "Msgv1 - " });
-                //     System.Console.WriteLine(result.GetResult().Content);
-                // }
-                var publisher = pattern.CreatePublisher();
-                while (true)
-                {
-                    await publisher.SendAsync(new Msg { Content = "publisher greets u" });
-                    Console.ReadLine();
-                }
-            }
-            else
-            {
-                var subscriber = pattern.CreateSubscriber();
-                subscriber.RegisterSubscriber<Msg>(m => System.Console.WriteLine(m.Content + " in callback-1!"));
-                // needs a snd subscriber
-                var sndSubscriber = pattern.CreateSubscriber();
-                sndSubscriber.RegisterSubscriber<Msg>(m => System.Console.WriteLine(m.Content + " in callback-2!"));
-
-                // var responder = RequestReplyFactory.CreateResponder(SocketConfiguration.TcpConfig("4577"));
-                // var setupResult = responder.Respond<Msg, MsgV2>(msg => new MsgV2 { Content = msg.Content + "extended by responder" });
-                // var result = responder.Respond<Msg, MsgV2>((s) => new MsgV2());
-                // System.Console.WriteLine($"'{result.IsSuccess}' - Expected was 'False'");
-                Console.ReadLine();
-            }
-
-            return;
-
             string key = args.FirstOrDefault() ?? HELP;
             var actions = args.Where(x => _terminalActions.ContainsKey(x)).Select((x, index) =>
             {

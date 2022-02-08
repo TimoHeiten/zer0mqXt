@@ -70,7 +70,7 @@ namespace heitech.zer0mqXt.core.PubSub
             {
                 // connect and setup and subscrube to the ready event for non blocking interactions
                 string topicFrame = _configuration.GetTopicFrame<TMessage>(topic);
-                _configuration.Logger.Log(new DebugLogMsg($"subscribing to '{topic}' for message {typeof(TMessage)} at {_configuration.Address()}"));
+                _configuration.Logger.Log(new DebugLogMsg($"subscribing to '{topicFrame}' for message {typeof(TMessage)} at {_configuration.Address()}"));
                 _socket.Connect(_configuration.Address());
 
                 _socket.Subscribe(topicFrame);

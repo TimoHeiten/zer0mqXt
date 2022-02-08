@@ -6,7 +6,9 @@ namespace heitech.zer0mqXt.core.transport
     internal static class PubSubMessageHelper
     {
         public static string GetTopicFrame<TMessage>(this SocketConfiguration configuration, string topic)
-            => topic ?? typeof(TMessage).TypeFrameName();
+        {
+            return string.IsNullOrWhiteSpace(topic) ? typeof(TMessage).TypeFrameName() : topic;
+        }
 
         public static byte[] PubSubMessage<TMessage>(this SocketConfiguration configuration, TMessage message)
             where TMessage : class, new()

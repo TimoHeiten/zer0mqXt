@@ -28,9 +28,5 @@ namespace heitech.zer0mqXt.core.Main
 
         public IResponder CreateResponder()
             => RequestReplyFactory.CreateResponder(_configuration);
-
-      
-
-        
     }
 }

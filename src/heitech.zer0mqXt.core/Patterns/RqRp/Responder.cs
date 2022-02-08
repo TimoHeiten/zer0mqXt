@@ -79,7 +79,6 @@ namespace heitech.zer0mqXt.core.patterns.RqRp
             catch (Exception exception)
             {
                 _configuration.Logger.Log(new ErrorLogMsg(exception.GetType().Name + "-" + exception.Message));
-                Dispose();
             }
             finally
             {
