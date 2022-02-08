@@ -11,7 +11,6 @@ namespace heitech.zer0mqXt.core.tests
 {
     public class PubSubTests
     {
-
         [Fact]
         public async Task SimplePubSub_InProc()
         {
@@ -54,7 +53,7 @@ namespace heitech.zer0mqXt.core.tests
         // [InlineData("topic/subtopic", true)] does not work
         // // [InlineData("topical", true)] does not work
         // // [InlineData(null, true)] does not work
-        
+
         // // [InlineData("TOPIC", false)] works
         // // [InlineData("top", false)] does not work
         // // [InlineData("Other", false)] works
@@ -79,7 +78,7 @@ namespace heitech.zer0mqXt.core.tests
 
         //     // Act
         //     await sut.Server.SendAsync(new Message(), SENDER_TOPIC);
-            
+
         //     // Assert
         //     bool wassignaled = waitHandle.WaitOne(1500);
         //     Assert.Equal(wasCaptured, wassignaled);
@@ -122,7 +121,9 @@ namespace heitech.zer0mqXt.core.tests
 
         // #region TCP Tests do not work in automated testing for some reason or another...
 
+        // todo
         [Fact]
+        //[Fact(Skip ="does not work when you run it with the other tests...")]
         public async Task SimplePubSub_Tcp()
         {
             // Arrange
@@ -132,17 +133,18 @@ namespace heitech.zer0mqXt.core.tests
 
             var config = new ConfigurationTestData().GetSocketConfigInProc;
             var pattern = Zer0Mq.Go().BuildWithTcp("localhost", "4880");
-            using var sut = SUT<IPublisher, ISubscriber>.PubSub(pattern);
-            Action a = () => sut.Client.RegisterSubscriber<Message>(callback: m => { incoming = m; resetEvent.Set(); });
+            using var publisher = pattern.CreatePublisher();
+            using var subscriber = pattern.CreateSubscriber();
+            var xt = subscriber.RegisterSubscriber<Message>(callback: m => { incoming = m; resetEvent.Set(); });
             // sanityCheck
-            var ex = Record.Exception(a);
-            Assert.Null(ex);
+            Assert.True(xt.IsSuccess);
+            await Task.Delay(250); // wait for the subscriber to be setup
 
             // Act
-            await sut.Server.SendAsync(message);
+            await publisher.SendAsync(message);
 
             // Assert
-            bool wasSignaled = resetEvent.WaitOne(1500);
+            bool wasSignaled = resetEvent.WaitOne(2500);
             Assert.True(wasSignaled);
             Assert.NotNull(incoming);
             Assert.Equal(message.Array, incoming.Array);
@@ -199,7 +201,7 @@ namespace heitech.zer0mqXt.core.tests
             Action a = () => sut.Client.RegisterSubscriber<Message>(
                 callback: m =>
                 {
-                    incoming = m; 
+                    incoming = m;
                     cntdwn.Signal();
                 }
             );
@@ -260,7 +262,7 @@ namespace heitech.zer0mqXt.core.tests
             bool signaled2 = waitHandle2.WaitOne(1500);
             bool signaled3 = waitHandle3.WaitOne(1500);
 
-            Assert.All(new [] { signaled1, signaled2, signaled3 }, x => Assert.True(x));
+            Assert.All(new[] { signaled1, signaled2, signaled3 }, x => Assert.True(x));
         }
 
         [Fact]
@@ -272,7 +274,7 @@ namespace heitech.zer0mqXt.core.tests
 
             // Act
             Action a = () => pattern.CreatePublisher();
-            
+
             // Assert
             Assert.ThrowsAny<ZeroMqXtSocketException>(a);
         }
@@ -285,16 +287,19 @@ namespace heitech.zer0mqXt.core.tests
             using var publisher = patterns.CreatePublisher();
             using var subscriber = patterns.CreateSubscriber();
 
+            var handle = new ManualResetEvent(false);
             bool wasError = false;
             subscriber.RegisterSubscriber<SndMessage>(
-                m => { /*never reached */}, () => wasError = true,
-                "this-topic" 
+                m => { }, () => { handle.Set(); wasError = true; },
+                "this-topic"
             );
 
             // Act
-            await publisher.SendAsync(new Message());
+            await publisher.SendAsync(new Message(), "this-topic");
 
             // Assert
+            bool wasSignaled = handle.WaitOne(150);
+            Assert.True(wasSignaled);
             Assert.True(wasError);
         }
 

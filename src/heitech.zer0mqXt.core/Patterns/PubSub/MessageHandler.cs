@@ -48,7 +48,7 @@ namespace heitech.zer0mqXt.core.PubSub
 
             XtResult<TMessage> actualMessage = null;
             var topic = socket.ReceiveFrameString();
-            System.Console.WriteLine("incoming topic " + topic);
+            
             var payload = socket.ReceiveFrameBytes();
             actualMessage = _configuration.ParseIncomingFrame<TMessage>(payload);
 

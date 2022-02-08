@@ -10,9 +10,10 @@ namespace heitech.zer0mqXt.core.utils
             anySocket.ReceiveReady -= receiveDelegate;
             if (poller != null && poller.IsRunning)
             {
-                poller.StopAsync();
-                poller.RemoveAndDispose(anySocket);
+                poller.Stop();
+                poller.Remove(anySocket);
                 poller.Dispose();
+                anySocket.Dispose();
             }
         }
     }

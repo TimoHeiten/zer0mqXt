@@ -46,11 +46,11 @@ namespace heitech.zer0mqXt.core.PubSub
                 try
                 {
                     string topicFrame = _configuration.GetTopicFrame<TMessage>(topic);
-                    byte[] pubSubMessage = _configuration.PubSubMessage(message);
+                    byte[] payload = _configuration.PubSubMessage(message);
                     _configuration.Logger.Log(new DebugLogMsg($"published to {topicFrame} for message {typeof(TMessage)}"));
 
                     _publisherSocket.SendMoreFrame(topicFrame)
-                                    .SendFrame(pubSubMessage);
+                                    .SendFrame(payload);
 
                     return XtResult<TMessage>.Success(message);
                 }
