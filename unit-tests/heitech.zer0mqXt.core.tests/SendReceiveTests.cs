@@ -4,7 +4,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using heitech.zer0mqXt.core.infrastructure;
 using heitech.zer0mqXt.core.Main;
-using heitech.zer0mqXt.core.patterns;
 using heitech.zer0mqXt.core.RqRp;
 using heitech.zer0mqXt.core.SendReceive;
 using Xunit;
@@ -15,10 +14,21 @@ namespace heitech.zer0mqXt.core.tests
     {
         private readonly IPatternFactory _factory;
         private readonly IReceiver _receiver;
-        
         // for inproc to work, the BIND socket (Server) needs to be there first.
         // we need to create the sender from the factory only after BIND happened
         // therefore we only create it in the actual test and not the ctor
+        private ISender Sender 
+        {
+            get
+            {
+                if (_sender == null)
+                {
+                    _sender = _factory.CreateSender();
+                }
+                return _sender;
+            }
+        }
+        
         private ISender _sender;
         public SendReceiveTests()
         {
@@ -38,10 +48,9 @@ namespace heitech.zer0mqXt.core.tests
             // Arrange
             int result = -1;
             _receiver.SetupReceiver<Message>(m => result = m.Number);
-            _sender = _factory.CreateSender();
 
             // Act
-            await _sender.SendAsync(new Message { Number = 42 });
+            await Sender.SendAsync(new Message { Number = 42 });
 
             // Assert
             Assert.Equal(42, result);
@@ -97,10 +106,9 @@ namespace heitech.zer0mqXt.core.tests
                 result = r.Number;
                 return Task.CompletedTask;
             });
-            _sender = _factory.CreateSender();
 
             // Act
-            var xtResult = await _sender.SendAsync(new Message { Number = 2 });
+            var xtResult = await Sender.SendAsync(new Message { Number = 2 });
 
             // Assert
             Assert.True(xtResult.IsSuccess);
@@ -115,10 +123,9 @@ namespace heitech.zer0mqXt.core.tests
             {
                 throw new ArgumentException("this is a unit test proving the exception propagation works");
             });
-            _sender = _factory.CreateSender();
 
             // Act
-            var result = await _sender.SendAsync<Message>(new Message());
+            var result = await Sender.SendAsync<Message>(new Message());
 
             // Assert
             Assert.False(result.IsSuccess);
@@ -132,7 +139,7 @@ namespace heitech.zer0mqXt.core.tests
         {
             // Arrange
             _receiver.SetupReceiver<Message>((r) => { });
-            _sender = _factory.CreateSender();
+            _ = Sender;
             // Act
             var result = _receiver.SetupReceiver<Message>((r) => {});
             var isSameSender = _factory.CreateSender();
@@ -145,7 +152,7 @@ namespace heitech.zer0mqXt.core.tests
                                                           .GetValue(s); 
             Assert.False(result.IsSuccess);
             // compare references of the underlying REP client
-            Assert.True(getRq(_sender) == getRq(isSameSender));
+            Assert.True(getRq(Sender) == getRq(isSameSender));
         }
 
         private class Message { public int Number { get; set; } = 12; }
