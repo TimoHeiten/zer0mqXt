@@ -135,24 +135,16 @@ namespace heitech.zer0mqXt.core.tests
         }
 
         [Fact]
-        public void Single_instance_of_SendReceive_trying_to_setup_another_responder_or_receiver_on_same_instance_returns_no_success()
+        public void Single_instance_of_SendReceive_trying_to_setup_another_receiver_on_same_instance_returns_no_success()
         {
             // Arrange
             _receiver.SetupReceiver<Message>((r) => { });
             _ = Sender;
             // Act
             var result = _receiver.SetupReceiver<Message>((r) => {});
-            var isSameSender = _factory.CreateSender();
             
             // Assert
-            //! not a really nice way, but was done after huge refactoring session so
-            //! it is fine for now 
-            Func<ISender, IClient> getRq = s => (IClient)s.GetType()
-                                                          .GetField("_client", BindingFlags.NonPublic | BindingFlags.Instance)
-                                                          .GetValue(s); 
             Assert.False(result.IsSuccess);
-            // compare references of the underlying REP client
-            Assert.True(getRq(Sender) == getRq(isSameSender));
         }
 
         private class Message { public int Number { get; set; } = 12; }

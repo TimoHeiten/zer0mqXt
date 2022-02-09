@@ -42,7 +42,7 @@ namespace heitech.zer0mqXt.core.patterns.RqRp
             where TRequest : class, new()
             where TResponse : class, new()
         {
-            return await _retry.RunAsyncWithRetry(async () => 
+            return await _retry.RunWithRetryAsync(async () => 
             {
                 _configuration.Logger.Log(new DebugLogMsg($"Send Request<{typeof(TRequest)}, {typeof(TResponse)}> to Address - {_configuration.Address()}"));
                 var message = new RequestReplyMessage<TRequest>(_configuration, request);
@@ -79,7 +79,6 @@ namespace heitech.zer0mqXt.core.patterns.RqRp
         {
             _rqSocket.Disconnect(_configuration.Address());
             _rqSocket?.Dispose();
-            RequestReplyFactory.KillRequester(_configuration);
         }
     }
 }

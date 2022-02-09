@@ -1,36 +1,40 @@
-using System;
-using System.Collections.Generic;
 using heitech.zer0mqXt.core.infrastructure;
 using heitech.zer0mqXt.core.patterns.RqRp;
-using heitech.zer0mqXt.core.utils;
+using heitech.zer0mqXt.core.transport;
 
 namespace heitech.zer0mqXt.core.RqRp
 {
     internal static class RequestReplyFactory
     {
         private static object _concurrencyToken = new();
-        private static Dictionary<SocketConfiguration, IClient> _requestCache = new();
-        private static Dictionary<SocketConfiguration, IResponder> _responderCache = new();
-
         public static IClient CreateClient(SocketConfiguration configuration)
         {
-            var result = Client.TryInitialize(configuration);
-            if (result.IsSuccess)
-                return configuration.Create<IClient>(_concurrencyToken, _requestCache, (c) => result.GetResult());
-            else if (_requestCache.TryGetValue(configuration, out IClient client))
-                return client;
+            var retry = new Retry(configuration);
+            // try to create a client by connecting to a socket.
+            // for inproc it can fail if there is no responder already that binds to the socket
+            // therefore we use the retry here
+            var clientResult = retry.RunWithRetry<IClient>
+            (
+                () => 
+                {
+                    var result = Client.TryInitialize(configuration);
+                    if (result.IsSuccess)
+                    {
+                        return result;
+                    }
+                    return result;
+                }
+            );
 
+            if (clientResult.IsSuccess)
+                return clientResult.GetResult();
+
+            // if neither the retry nor the cache succeeds, we log and throw
             configuration.Logger.Log(new ErrorLogMsg($"Failed to create Requester at address : [{configuration.Address()}]"));
-            throw result.Exception;
+            throw ZeroMqXtSocketException.FromException(clientResult.Exception);
         }
 
         public static IResponder CreateResponder(SocketConfiguration configuration)
-            => configuration.Create<IResponder>(_concurrencyToken, _responderCache, (c) => new Responder(c));
-
-        internal static void KillRequester(SocketConfiguration configuration)
-            => configuration.Kill<IClient>(_concurrencyToken, _requestCache);
-
-        internal static void KillResponder(SocketConfiguration configuration)
-        => configuration.Kill<IResponder>(_concurrencyToken, _responderCache);
+            => new Responder(configuration);
     }
 }

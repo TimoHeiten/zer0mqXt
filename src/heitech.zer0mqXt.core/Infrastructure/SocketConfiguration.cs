@@ -16,44 +16,49 @@ namespace heitech.zer0mqXt.core.infrastructure
         ///<summary>
         /// Uses the BasicLogger implementation by default which only Logs to the console
         ///</summary>
-        public ILogger Logger { get; set; }
-
+        public ILogger Logger 
+        {
+            get => _logger ?? new BasicLogger();
+            set => _logger = value;
+        }
+        private ILogger _logger;
         private protected SocketConfiguration()
         {
-            Logger = new BasicLogger();
+            _logger = new BasicLogger();
 
             var adapter = new InternalAdapter();
             Encoding = adapter.Encoding;
             Serializer = adapter;
 
-            RetryIsActive = true;
+            RetryCount = 1;
             Timeout = TimeSpan.FromSeconds(5);
         }
 
         ///<summary>
         /// By default it is UTF8
         ///</summary>
-        public Encoding Encoding { get; set; } 
+        public Encoding Encoding { get; set; }
 
         ///<summary>
         /// Default Timeout is 5 seconds
         ///</summary>
         public TimeSpan Timeout { get; set; }
 
-        public bool RetryIsActive { get; set; }
+        public uint? RetryCount { get; set; }
+        public bool RetryIsActive => RetryCount.HasValue;
 
         public static SocketConfiguration InprocConfig(string name) => new Inproc(name);
         public static SocketConfiguration TcpConfig(string port) => new Tcp(port);
         public static SocketConfiguration TcpConfig(string port, string host) => new Tcp(port, host);
 
-        public static void CleanUp() {  }
+        public static void CleanUp() { }
 
         public bool Equals(SocketConfiguration other)
             => other == null || other.Address() == this.Address();
 
         public override bool Equals(object obj)
             => Equals(obj as SocketConfiguration);
-        
+
         public override int GetHashCode()
             => Address().GetHashCode();
 

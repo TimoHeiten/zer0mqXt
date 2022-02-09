@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using heitech.zer0mqXt.core.infrastructure;
-using heitech.zer0mqXt.core.Main;
-using heitech.zer0mqXt.core.RqRp;
 using zeromq.terminal.PubSubTests;
 using zeromq.terminal.RqRepTests;
 // using zeromq.terminal.PubSubTests;
