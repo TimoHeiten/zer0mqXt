@@ -79,7 +79,6 @@ namespace heitech.zer0mqXt.core.patterns.RqRp
         {
             _rqSocket.Disconnect(_configuration.Address());
             _rqSocket?.Dispose();
-            RequestReplyFactory.KillRequester(_configuration);
         }
     }
 }

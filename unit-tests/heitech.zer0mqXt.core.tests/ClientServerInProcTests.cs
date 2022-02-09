@@ -124,24 +124,6 @@ namespace heitech.zer0mqXt.core.tests
             Assert.False(result.IsSuccess);
         }
 
-        [Fact]
-        public void Multiple_Socket_instances_and_multiple_responders_on_same_configuration_and_address_throws()
-        {
-            // Arrange
-            var socket = Zer0Mq.Go().SilenceLogger().BuildWithInProc("pipe-throws");
-            using var responder = socket.CreateResponder();
-            responder.Respond<Request, Response>((r) => new Response { ResponseNumber = 1 });
-
-            // Act
-            var socket2 = Zer0Mq.Go().SilenceLogger().BuildWithInProc("pipe-throws");
-            using var rsp2 = socket2.CreateResponder();
-            var result = rsp2.Respond<Request, Response>((r) => new Response { ResponseNumber = 2 });
-
-            // Assert
-            Assert.False(result.IsSuccess);
-            Assert.True(rsp2 == responder);
-        }
-
         // todo interface for try was removed
         // [Fact]
         // public async Task TryRequest_returns_false_and_invokes_the_failure_callback_when_no_server_exists()
