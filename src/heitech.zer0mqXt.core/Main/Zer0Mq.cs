@@ -5,12 +5,11 @@ using heitech.zer0mqXt.core.infrastructure;
 namespace heitech.zer0mqXt.core.Main
 {
     ///<inheritdoc cref="IZer0MqBuilder"/>
-    public class Zer0Mq : IZer0MqBuilder
+    public sealed class Zer0Mq : IZer0MqBuilder
     {
         private bool _isSilent;
         private ILogger _logger;
         private TimeSpan _timeOut;
-        private bool _usePublisher;
         private ISerializerAdapter _serializer;
 
         private Zer0Mq()
@@ -37,13 +36,13 @@ namespace heitech.zer0mqXt.core.Main
         ///</summary>
         public static IZer0MqBuilder Go() => new Zer0Mq();
 
-        public ISocket BuildWithInProc(string pipeName)
+        public IPatternFactory BuildWithInProc(string pipeName)
             => Build(new SocketConfiguration.Inproc(pipeName));
 
-        public ISocket BuildWithTcp(string host, string port)
+        public IPatternFactory BuildWithTcp(string host, string port)
             => Build(new SocketConfiguration.Tcp(port:port, host:host));
 
-        private ISocket Build(SocketConfiguration configuration)
+        private IPatternFactory Build(SocketConfiguration configuration)
         {
             configuration.Logger = _logger;
             configuration.Timeout = _timeOut;
@@ -52,18 +51,14 @@ namespace heitech.zer0mqXt.core.Main
             if (_isSilent)
                 _logger.SetSilent();
 
-            var socket = new Socket(configuration);
-
-            if (_usePublisher)
-                socket.PrimePublisher();
-
-            return socket;
+            return new PatternFactory(configuration);
         }
 
-        public IZer0MqBuilder UsePublisher()
+        // for test purposes only
+        internal static IPatternFactory From(SocketConfiguration configuration)
         {
-            _usePublisher = true;
-            return this;
+            var mq = new Zer0Mq();
+            return mq.Build(configuration);
         }
 
         public IZer0MqBuilder SilenceLogger()

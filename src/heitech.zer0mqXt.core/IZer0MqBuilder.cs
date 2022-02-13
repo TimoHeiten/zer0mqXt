@@ -33,12 +33,7 @@ namespace heitech.zer0mqXt.core
         ///</summary>
         IZer0MqBuilder SetTimeOut(TimeSpan timeOut);
 
-        ///<summary>
-        /// This is important to prime a socket as a publishing one. Else this Pattern cannot be used for this socket. Can only be used for one Publisher at a time!
-        ///</summary>
-        IZer0MqBuilder UsePublisher();
-
-        ISocket BuildWithTcp(string host, string port);
-        ISocket BuildWithInProc(string pipeName);
+        IPatternFactory BuildWithTcp(string host, string port);
+        IPatternFactory BuildWithInProc(string pipeName);
     }
 }

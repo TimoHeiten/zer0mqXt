@@ -1,16 +1,18 @@
 using System;
 using System.Text;
 using heitech.zer0mqXt.core.Adapters;
+using NetMQ;
+using NetMQ.Sockets;
 
 namespace heitech.zer0mqXt.core.infrastructure
 {
-    internal abstract class SocketConfiguration
+    internal abstract class SocketConfiguration : IEquatable<SocketConfiguration>
     {
         ///<summary>
         /// Uses Newtonsoft by default. But you can also use Utf8Json or supply your own serialization
         ///</summary>
         public ISerializerAdapter Serializer { get; set; }
-        internal abstract string Address();
+        internal abstract string Address(NetMQSocket netMQSocket = null);
         ///<summary>
         /// Uses the BasicLogger implementation by default which only Logs to the console
         ///</summary>
@@ -40,22 +42,38 @@ namespace heitech.zer0mqXt.core.infrastructure
 
         public bool RetryIsActive { get; set; }
 
-        public static Inproc InprocConfig(string name) => new Inproc(name);
-        public static Tcp TcpConfig(string port) => new Tcp(port);
-        public static Tcp TcpConfig(string port, string host) => new Tcp(port, host);
+        public static SocketConfiguration InprocConfig(string name) => new Inproc(name);
+        public static SocketConfiguration TcpConfig(string port) => new Tcp(port);
+        public static SocketConfiguration TcpConfig(string port, string host) => new Tcp(port, host);
 
         public static void CleanUp() {  }
+
+        public bool Equals(SocketConfiguration other)
+            => other == null || other.Address() == this.Address();
+
+        public override bool Equals(object obj)
+            => Equals(obj as SocketConfiguration);
+        
+        public override int GetHashCode()
+            => Address().GetHashCode();
 
         public sealed class Tcp : SocketConfiguration
         {
             private readonly string _address;
+            private readonly string _port;
+            private readonly string _host;
             internal Tcp(string port, string host = "localhost")
             {
+                _host = host; _port = port;
                 _address = $"tcp://{host}:{port}";
             }
 
-            internal override string Address()
+            internal override string Address(NetMQSocket socket = null)
             {
+                if (socket != null && socket.GetType() == typeof(PublisherSocket))
+                {
+                    return $"tcp://*:{_port}";
+                }
                 return _address;
             }
         }
@@ -68,7 +86,7 @@ namespace heitech.zer0mqXt.core.infrastructure
                 _address = $"inproc://{name}";
             }
 
-            internal override string Address()
+            internal override string Address(NetMQSocket socket = null)
             {
                 return _address;
             }

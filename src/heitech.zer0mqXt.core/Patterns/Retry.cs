@@ -10,16 +10,12 @@ namespace heitech.zer0mqXt.core.patterns
     internal class Retry
     {
         private readonly SocketConfiguration _configuration;
-
-        internal Retry(SocketConfiguration configuration)
-        {
-            this._configuration = configuration;
-        }
+        internal Retry(SocketConfiguration configuration) => _configuration = configuration;
 
         ///<summary>
         /// Register your retryable callback here
         ///</summary>
-        internal async Task<XtResult<T>> RunAsyncWithRetry<T>(Func<Task<XtResult<T>>> retryableAction, string operationName = "request")
+        internal async Task<XtResult<T>> RunAsyncWithRetry<T>(Func<Task<XtResult<T>>> retryableAction, string operationName = "request", Action tryToReconnect = null)
             where T : class
         {
             try
@@ -32,6 +28,8 @@ namespace heitech.zer0mqXt.core.patterns
                 await Task.Delay(_configuration.Timeout).ConfigureAwait(false);
                 try
                 {
+                    // todo
+                    // tryToReconnect();
                     return await retryableAction().ConfigureAwait(false);
                 }
                 catch (System.Exception inner)

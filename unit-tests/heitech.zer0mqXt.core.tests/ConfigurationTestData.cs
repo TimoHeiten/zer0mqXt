@@ -16,14 +16,13 @@ namespace heitech.zer0mqXt.core.tests
                 c.Logger.SetSilent();
                 return c;
             }
-
         }
 
         internal SocketConfiguration GetSocketConfigTcp
         {
             get 
             {
-                var c = SocketConfiguration.TcpConfig(port: "5566", host: "localhost");
+                var c = SocketConfiguration.TcpConfig(port: "4889", host: "localhost");
                 c.Logger.SetSilent();
                 return c;
             }
@@ -42,16 +41,13 @@ namespace heitech.zer0mqXt.core.tests
             yield return new object[] { tcp };
         }
 
-        internal static ISocket BuildInProcSocketInstanceForTest(string pipeName, long? timeoutInMs = null, bool usePblshr = false)
+        internal static IPatternFactory BuildInProcSocketInstanceForTest(string pipeName, long? timeoutInMs = null, bool usePblshr = false)
         {
             var builder = Zer0Mq.Go().SilenceLogger();
             if (timeoutInMs.HasValue)
                 builder.SetTimeOut(timeoutInMs.Value);
-            if (usePblshr)
-                builder.UsePublisher();
 
             return builder.BuildWithInProc(pipeName);
-
         } 
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
