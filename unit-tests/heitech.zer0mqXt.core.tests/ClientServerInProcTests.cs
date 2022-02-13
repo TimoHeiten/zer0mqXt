@@ -13,7 +13,6 @@ namespace heitech.zer0mqXt.core.tests
         private IClient _client; // need to create in each test after setting up the responder, else it will crash
         private IResponder _responder;
         private readonly IPatternFactory _patterns;
-
         private readonly ITestOutputHelper _h;
         public ClientServerInProcTests(ITestOutputHelper h)
         {

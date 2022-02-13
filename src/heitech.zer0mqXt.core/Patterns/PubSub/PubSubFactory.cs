@@ -1,13 +1,10 @@
-using System.Collections.Generic;
 using heitech.zer0mqXt.core.infrastructure;
-using heitech.zer0mqXt.core.utils;
 
 namespace heitech.zer0mqXt.core.PubSub
 {
     internal static class PubSubFactory
     {
         private static readonly object _concurrencyToken = new();
-        private static readonly Dictionary<SocketConfiguration, IPublisher> _publisherCache = new();
         internal static IPublisher CreatePublisher(SocketConfiguration configuration)
         {
             var result = Publisher.TryInitialize(configuration);
@@ -20,8 +17,5 @@ namespace heitech.zer0mqXt.core.PubSub
 
         internal static ISubscriber CreateSubscriber(SocketConfiguration socketConfiguration)
             => new Subscriber(socketConfiguration); // we can have as many Subscribers as we want but one publisher
-
-        internal static void KillPubslisher(this SocketConfiguration key)
-            => key.Kill<IPublisher>(_concurrencyToken, _publisherCache);
     }
 }

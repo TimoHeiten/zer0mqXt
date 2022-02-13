@@ -51,17 +51,15 @@ namespace heitech.zer0mqXt.core.infrastructure
         public static SocketConfiguration TcpConfig(string port) => new Tcp(port);
         public static SocketConfiguration TcpConfig(string port, string host) => new Tcp(port, host);
 
-        public static void CleanUp() { }
+        public override int GetHashCode()
+            => Address().GetHashCode();
 
         public bool Equals(SocketConfiguration other)
             => other == null || other.Address() == this.Address();
 
         public override bool Equals(object obj)
             => Equals(obj as SocketConfiguration);
-
-        public override int GetHashCode()
-            => Address().GetHashCode();
-
+        
         public sealed class Tcp : SocketConfiguration
         {
             private readonly string _address;

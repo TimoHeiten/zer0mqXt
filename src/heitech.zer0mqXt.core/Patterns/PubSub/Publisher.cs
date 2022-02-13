@@ -68,7 +68,6 @@ namespace heitech.zer0mqXt.core.PubSub
                 if (disposing)
                 {
                      _publisherSocket?.Dispose();
-                    _configuration.KillPubslisher();
                 }
                 disposedValue = true;
             }
