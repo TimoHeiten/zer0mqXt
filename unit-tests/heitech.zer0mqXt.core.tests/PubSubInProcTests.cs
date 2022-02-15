@@ -15,7 +15,7 @@ namespace heitech.zer0mqXt.core.tests
         private readonly IPublisher _publisher;
         private readonly ISubscriber _subscriber;
 
-        private const int SIG_WAIT = 500;
+        private const int SIG_WAIT = 1500;
 
         public PubSubInProcTests()
         {
