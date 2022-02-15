@@ -18,7 +18,13 @@ namespace heitech.zer0mqXt.core.infrastructure
         ///</summary>
         public ILogger Logger 
         {
-            get => _logger ?? new BasicLogger();
+            get
+            {
+                if (_logger == null)
+                    _logger = new BasicLogger();
+
+                return _logger;
+            } 
             set => _logger = value;
         }
         private ILogger _logger;
@@ -45,7 +51,7 @@ namespace heitech.zer0mqXt.core.infrastructure
         public TimeSpan Timeout { get; set; }
 
         public uint? RetryCount { get; set; }
-        public bool RetryIsActive => RetryCount.HasValue;
+        public bool RetryIsActive => RetryCount.HasValue && RetryCount.Value > 0;
 
         public static SocketConfiguration InprocConfig(string name) => new Inproc(name);
         public static SocketConfiguration TcpConfig(string port) => new Tcp(port);
