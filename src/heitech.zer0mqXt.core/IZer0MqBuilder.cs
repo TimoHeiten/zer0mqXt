@@ -21,6 +21,15 @@ namespace heitech.zer0mqXt.core
         ///</summary>
         IZer0MqBuilder SilenceLogger();
         ///<summary>
+        /// Set amount of retries for retryable Patterns like (RqRp). Default is 1
+        ///</summary>
+        IZer0MqBuilder SetRetryCount(uint counter);
+
+        ///<summary>
+        /// Disable any retries on this configuration
+        ///</summary>
+        IZer0MqBuilder DisableRetry();
+        ///<summary>
         /// Introduce a ISerializeAdapter, maybe from your choosing
         ///</summary>
         IZer0MqBuilder SetSerializer(ISerializerAdapter adapter);

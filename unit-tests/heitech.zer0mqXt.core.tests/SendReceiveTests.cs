@@ -134,6 +134,19 @@ namespace heitech.zer0mqXt.core.tests
             Assert.StartsWith("Server failed with" + Environment.NewLine + "ArgumentException", result.Exception.Message);
         }
 
+        [Fact]
+        public void Single_instance_of_SendReceive_trying_to_setup_another_receiver_on_same_instance_returns_no_success()
+        {
+            // Arrange
+            _receiver.SetupReceiver<Message>((r) => { });
+            _ = Sender;
+            // Act
+            var result = _receiver.SetupReceiver<Message>((r) => {});
+            
+            // Assert
+            Assert.False(result.IsSuccess);
+        }
+
         private class Message { public int Number { get; set; } = 12; }
     }
 }

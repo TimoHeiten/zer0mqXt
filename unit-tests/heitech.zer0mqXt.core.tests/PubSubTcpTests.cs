@@ -18,7 +18,7 @@ namespace heitech.zer0mqXt.core.tests
             var message = new Message { ThisIsAPublishedMessageText = "published a message", Array = new[] { 1, 2, 3, 4 } };
 
             var config = new ConfigurationTestData().GetSocketConfigInProc;
-            var pattern = Zer0Mq.Go().BuildWithTcp("localhost", "4880");
+            var pattern = Zer0Mq.Go().SilenceLogger().BuildWithTcp("localhost", "4880");
             using var publisher = pattern.CreatePublisher();
             using var subscriber = pattern.CreateSubscriber();
             var xt = subscriber.RegisterSubscriber<Message>(callback: m => { incoming = m; resetEvent.Set(); });
