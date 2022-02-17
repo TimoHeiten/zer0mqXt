@@ -119,13 +119,17 @@ namespace heitech.zer0mqXt.core.tests
         public async Task Exception_propagation_when_server_response_Throws_to_Requester()
         {
             // Arrange
-            _receiver.SetupReceiver<Message>(r =>
+            // Arrange
+            var p2 = Zer0Mq.Go().EnableDeveloperMode().BuildWithInProc($"{Guid.NewGuid()}");
+            using var receiver2 = p2.CreateReceiver();
+            receiver2.SetupReceiver<Message>(r =>
             {
                 throw new ArgumentException("this is a unit test proving the exception propagation works");
             });
+            using var sender2 = p2.CreateSender();
 
             // Act
-            var result = await Sender.SendAsync<Message>(new Message());
+            var result = await sender2.SendAsync<Message>(new Message());
 
             // Assert
             Assert.False(result.IsSuccess);

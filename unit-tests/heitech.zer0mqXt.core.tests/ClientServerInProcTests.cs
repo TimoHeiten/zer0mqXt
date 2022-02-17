@@ -97,14 +97,17 @@ namespace heitech.zer0mqXt.core.tests
         [Fact]
         public async Task Exception_propagation_when_server_response_Throws_to_Requester()
         {
-            _responder.Respond<Request, Response>(r =>
+            // Arrange
+            var p2 = Zer0Mq.Go().EnableDeveloperMode().BuildWithInProc($"{Guid.NewGuid()}");
+            using var responder2 = p2.CreateResponder();
+            responder2.Respond<Request, Response>(r =>
             {
                 throw new ArgumentException("this is a unit test proving the exception propagation works");
             });
-            _client = _patterns.CreateClient();
+            using var client2 = p2.CreateClient();
 
             // Act
-            var result = await Client.RequestAsync<Request, Response>(new Request { RequestNumber = 2 });
+            var result = await client2.RequestAsync<Request, Response>(new Request { RequestNumber = 2 });
 
             // Assert
             Assert.False(result.IsSuccess);
@@ -135,7 +138,6 @@ namespace heitech.zer0mqXt.core.tests
             IClient client = null;
             try
             {
-
                 // Arrange
                 var socket = Zer0Mq.Go().SetLogger(new LoggerAdapter { H = _h }).SilenceLogger().SetTimeOut(300).SetRetryCount(retryCount).BuildWithInProc($"{Guid.NewGuid()}");
                 using var responder = socket.CreateResponder();
@@ -164,6 +166,40 @@ namespace heitech.zer0mqXt.core.tests
             {
                 client?.Dispose();
             }
+        }
+
+        [Fact]
+        public async Task Request_ReplyError_Does_Not_Propagate_remote_Stacktrace()
+        {
+            // Arrange
+            _responder.Respond<Request, Response>(x => throw new InvalidOperationException("Message is propagated"));
+            _client = _patterns.CreateClient();
+
+            // Act
+            var result = await _client.RequestAsync<Request, Response>(new Request());
+
+            // Assert
+            Assert.False(result.IsSuccess);
+            Assert.DoesNotContain("propagated", result.Exception.Message);
+            var ex = ZeroMqXtSocketException.ResponseFailed<Response>();
+            Assert.Equal(ex.Message, result.Exception.Message);
+        }
+
+        [Fact]
+        public async Task RequestAndReply_OnlySendStacktraceInDeveloperMode()
+        {
+            // Arrange
+            var patternsv2 = Zer0Mq.Go().EnableDeveloperMode().BuildWithInProc($"{Guid.NewGuid()}");
+            using var respond = patternsv2.CreateResponder();
+            respond.Respond<Request, Response>(x => throw new InvalidOperationException("Message is propagated"));
+            using var client = patternsv2.CreateClient();
+
+            // Act
+            var result = await client.RequestAsync<Request, Response>(new Request());
+
+            // Assert
+            Assert.False(result.IsSuccess);
+            Assert.Contains("propagated", result.Exception.Message);
         }
 
         private class LoggerAdapter : ILogger
