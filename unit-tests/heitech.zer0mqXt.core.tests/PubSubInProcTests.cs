@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using FluentAssertions;
 using heitech.zer0mqXt.core.infrastructure;
 using heitech.zer0mqXt.core.Main;
 using heitech.zer0mqXt.core.PubSub;
@@ -48,11 +49,11 @@ namespace heitech.zer0mqXt.core.tests
 
             // Assert
             bool wasSignaled = waitHandle.WaitOne(SIG_WAIT);
-            Assert.True(wasSignaled);
-            Assert.NotNull(incoming);
-            Assert.True(xtResult.IsSuccess);
-            Assert.Equal(message.Array, incoming.Array);
-            Assert.Equal(message.ThisIsAPublishedMessageText, incoming.ThisIsAPublishedMessageText);
+            wasSignaled.Should().BeTrue();
+            incoming.Should().NotBeNull();
+            xtResult.IsSuccess.Should().BeTrue();
+            incoming.Array.Should().BeEquivalentTo(message.Array);
+            incoming.ThisIsAPublishedMessageText.Should().Be(message.ThisIsAPublishedMessageText);
         }
 
         // !! todo
@@ -103,7 +104,7 @@ namespace heitech.zer0mqXt.core.tests
 
             // Assert
             // no assert as no exception is expected otherwiese the test would fail at the call to the function pub()
-            Assert.True(result.IsSuccess);
+            result.IsSuccess.Should().BeTrue();
         }
 
         [Fact]
@@ -121,7 +122,7 @@ namespace heitech.zer0mqXt.core.tests
             await _publisher.SendAsync<Message>(new Message());
 
             // Assert
-            Assert.False(wasReceived);
+            wasReceived.Should().BeFalse();
         }
 
         // #region TCP Tests do not work in automated testing for some reason or another...
@@ -143,7 +144,7 @@ namespace heitech.zer0mqXt.core.tests
             Action a2 = () => sndSub.RegisterSubscriber<OtherMessage>(callback: m => { otherIncoming = m; waitHandle2.Set(); });
             // sanityCheck
             var ex2 = Record.Exception(a2);
-            Assert.Null(ex2);
+            ex2.Should().BeNull();
 
             // Act
             await _publisher.SendAsync<Message>(new Message());
@@ -152,12 +153,12 @@ namespace heitech.zer0mqXt.core.tests
             // Assert
             bool wasSignaled1 = waitHandle1.WaitOne(SIG_WAIT);
             bool wasSignaled2 = waitHandle2.WaitOne(SIG_WAIT);
-            Assert.True(wasSignaled1);
-            Assert.True(wasSignaled2);
+            wasSignaled1.Should().BeTrue();
+            wasSignaled2.Should().BeTrue();
 
-            Assert.NotNull(incoming);
-            Assert.NotNull(otherIncoming);
-            Assert.Equal("abcaffeschnee", otherIncoming.Content);
+            incoming.Should().NotBeNull();;
+            otherIncoming.Should().NotBeNull();
+            otherIncoming.Content.Should().Be("abcaffeschnee");
         }
 
         [Fact()]
@@ -178,7 +179,7 @@ namespace heitech.zer0mqXt.core.tests
             );
             // sanityCheck
             var ex = Record.Exception(a);
-            Assert.Null(ex);
+            ex.Should().BeNull();
             Action a2 = () => sndSub.RegisterSubscriber<Message>(callback: m =>
             {
                 otherIncoming = m;
@@ -186,7 +187,7 @@ namespace heitech.zer0mqXt.core.tests
             });
             // sanityCheck
             var ex2 = Record.Exception(a2);
-            Assert.Null(ex2);
+            ex2.Should().BeNull();
 
             // Act
             await _publisher.SendAsync<Message>(new ()
@@ -197,11 +198,11 @@ namespace heitech.zer0mqXt.core.tests
 
             // Assert
             bool wasSignaled = cntdwn.Wait(TimeSpan.FromMilliseconds(1500));
-            Assert.True(wasSignaled);
-            Assert.NotNull(incoming);
-            Assert.NotNull(otherIncoming);
-            Assert.Equal("abcaffeschnee", incoming.ThisIsAPublishedMessageText);
-            Assert.Equal("abcaffeschnee", otherIncoming.ThisIsAPublishedMessageText);
+            wasSignaled.Should().BeTrue();
+            incoming.Should().NotBeNull();
+            otherIncoming.Should().NotBeNull();
+            incoming.ThisIsAPublishedMessageText.Should().Be("abcaffeschnee");
+            otherIncoming.ThisIsAPublishedMessageText.Should().Be("abcaffeschnee");
         }
 
         [Fact]
@@ -228,7 +229,8 @@ namespace heitech.zer0mqXt.core.tests
             bool signaled2 = waitHandle2.WaitOne(SIG_WAIT);
             bool signaled3 = waitHandle3.WaitOne(SIG_WAIT);
 
-            Assert.All(new[] { signaled1, signaled2, signaled3 }, x => Assert.True(x));
+            new[] { signaled1, signaled2, signaled3 }.Should()
+                                                     .AllSatisfy(x => x.Should().BeTrue());
         }
 
         [Fact]
@@ -239,7 +241,7 @@ namespace heitech.zer0mqXt.core.tests
             Action a = () => _patterns.CreatePublisher();
 
             // Assert
-            Assert.ThrowsAny<ZeroMqXtSocketException>(a);
+            a.Should().Throw<ZeroMqXtSocketException>();
         }
 
         [Fact(Skip = "flaky test on github actions")]
@@ -258,8 +260,8 @@ namespace heitech.zer0mqXt.core.tests
 
             // Assert
             bool wasSignaled = handle.WaitOne(SIG_WAIT);
-            Assert.True(wasSignaled);
-            Assert.True(wasError); // todo not working on github actions for whatever reason
+            wasSignaled.Should().BeTrue();
+            wasError.Should().BeTrue();
         }
 
         public void Dispose()
