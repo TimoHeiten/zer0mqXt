@@ -1,6 +1,9 @@
 using System;
+using System.Linq;
+using System.Reflection;
 using heitech.zer0mqXt.core.Adapters;
 using heitech.zer0mqXt.core.infrastructure;
+using heitech.zer0mqXt.core.Transport;
 using NetMQ;
 
 namespace heitech.zer0mqXt.core.transport
@@ -96,6 +99,18 @@ namespace heitech.zer0mqXt.core.transport
             }
         }
 
-        public static string TypeFrameName(this Type type) => type.FullName;
+        ///<summary>
+        /// Get the TypeFrame by Convention (Type-Name) or by declarative MessageAttribute
+        ///</summary>
+        public static string TypeFrameName(this Type type) 
+        {
+            // todo optimize with static cache or others?
+            var attribute = type.GetCustomAttributes()
+                                .SingleOrDefault(x => x.GetType() == typeof(Zer0mqMessageAttribute));
+            
+            return attribute is not null && attribute is Zer0mqMessageAttribute zer0
+                   ? zer0.MessageId
+                   : type.Name; 
+        } 
     }
 }

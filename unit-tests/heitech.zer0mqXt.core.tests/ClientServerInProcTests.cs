@@ -271,7 +271,7 @@ namespace heitech.zer0mqXt.core.tests
         //     input_output_Tuples.Add((input, result.GetResult().ResponseNumber));
         // }
 
-        private class Request { public int RequestNumber { get; set; } }
+        internal class Request { public int RequestNumber { get; set; } }
         private class Response { public int ResponseNumber { get; set; } }
 
 
