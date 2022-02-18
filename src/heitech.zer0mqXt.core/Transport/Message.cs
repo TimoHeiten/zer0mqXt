@@ -73,10 +73,12 @@ namespace heitech.zer0mqXt.core.transport
             bool isSuccess = Convert.ToBoolean(configuration.Serializer.Deserialize<string>(successFrame));
             if (!isSuccess)
             {
-                var exceptionText = configuration.Serializer.Deserialize<string>(payloadFrame);
-                Exception ex = configuration.DeveloperMode 
-                               ? new ZeroMqXtSocketException("Server failed with" + exceptionText)
-                               : ZeroMqXtSocketException.ResponseFailed<TMessage>();
+                Exception ex =  ZeroMqXtSocketException.ResponseFailed<TMessage>();
+                if (configuration.DeveloperMode)
+                {
+                    var exceptionText = configuration.Serializer.Deserialize<string>(payloadFrame);
+                    ex = new ZeroMqXtSocketException("Server failed with" + exceptionText);
+                }
 
                 configuration.Logger.Log(new ErrorLogMsg(ex.Message));
                 return XtResult<TMessage>.Failed(ex, operation);
