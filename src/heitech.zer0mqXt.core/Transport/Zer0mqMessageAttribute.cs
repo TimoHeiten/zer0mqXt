@@ -6,7 +6,7 @@ namespace heitech.zer0mqXt.core.Transport
     /// Depicts a Message to be used with the Zer0mqXt library.
     /// <para>The MessageId is used to check for matching Messages (Make also sure that you can serialize/deserialize the matching messages)</para>
     ///</summary>
-    [System.AttributeUsage(System.AttributeTargets.All, Inherited = false, AllowMultiple = false)]
+    [System.AttributeUsage(System.AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
     public sealed class Zer0mqMessageAttribute : Attribute
     {
         ///<summary>
