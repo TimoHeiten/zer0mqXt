@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using heitech.zer0mqXt.core.infrastructure;
 using heitech.zer0mqXt.core.Main;
+using heitech.zer0mqXt.core.patterns.RqRp;
 using heitech.zer0mqXt.core.RqRp;
 using heitech.zer0mqXt.core.SendReceive;
 using Xunit;
@@ -83,7 +84,7 @@ namespace heitech.zer0mqXt.core.tests
             // Arrange
             var config = (SocketConfiguration)configuration;
             config.Timeout = TimeSpan.FromSeconds(1);
-            using var rec = new Receiver(config);
+            using var rec = new Receiver(config, new Responder(config));
             // is a Timeout
             rec.SetupReceiver<Message>(m => Thread.Sleep(1500));
             using var sender = new Sender(config);

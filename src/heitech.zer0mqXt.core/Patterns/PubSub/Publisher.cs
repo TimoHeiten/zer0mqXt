@@ -17,6 +17,7 @@ namespace heitech.zer0mqXt.core.PubSub
         private Publisher(SocketConfiguration configuration, PublisherSocket socket)
         {
             _publisherSocket = socket;
+            _publisherSocket.Options.SendHighWatermark = 0;
             _configuration = configuration;
         }
 
