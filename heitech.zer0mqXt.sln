@@ -15,6 +15,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "unit-tests", "unit-tests", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "heitech.zer0mqXt.core.tests", "unit-tests\heitech.zer0mqXt.core.tests\heitech.zer0mqXt.core.tests.csproj", "{A2807DEE-210A-4AEA-9677-7D90AA9B44DE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "zeromq.endurance", "tests\zeromq.endurance\zeromq.endurance.csproj", "{318D6EBC-417A-439B-88C3-ED2C3A187D21}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -64,10 +66,23 @@ Global
 		{A2807DEE-210A-4AEA-9677-7D90AA9B44DE}.Release|x64.Build.0 = Release|Any CPU
 		{A2807DEE-210A-4AEA-9677-7D90AA9B44DE}.Release|x86.ActiveCfg = Release|Any CPU
 		{A2807DEE-210A-4AEA-9677-7D90AA9B44DE}.Release|x86.Build.0 = Release|Any CPU
+		{318D6EBC-417A-439B-88C3-ED2C3A187D21}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{318D6EBC-417A-439B-88C3-ED2C3A187D21}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{318D6EBC-417A-439B-88C3-ED2C3A187D21}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{318D6EBC-417A-439B-88C3-ED2C3A187D21}.Debug|x64.Build.0 = Debug|Any CPU
+		{318D6EBC-417A-439B-88C3-ED2C3A187D21}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{318D6EBC-417A-439B-88C3-ED2C3A187D21}.Debug|x86.Build.0 = Debug|Any CPU
+		{318D6EBC-417A-439B-88C3-ED2C3A187D21}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{318D6EBC-417A-439B-88C3-ED2C3A187D21}.Release|Any CPU.Build.0 = Release|Any CPU
+		{318D6EBC-417A-439B-88C3-ED2C3A187D21}.Release|x64.ActiveCfg = Release|Any CPU
+		{318D6EBC-417A-439B-88C3-ED2C3A187D21}.Release|x64.Build.0 = Release|Any CPU
+		{318D6EBC-417A-439B-88C3-ED2C3A187D21}.Release|x86.ActiveCfg = Release|Any CPU
+		{318D6EBC-417A-439B-88C3-ED2C3A187D21}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{BCA16952-EA70-4519-8939-B13E086BAB75} = {8862FB5B-A01F-4595-962A-5B323907CB8A}
 		{B7CC251B-5D65-4AC1-982F-6F1A80E977F6} = {E29A52D6-EC4D-4C06-9BAB-CDB45042590F}
 		{A2807DEE-210A-4AEA-9677-7D90AA9B44DE} = {C0D1D10F-FFCA-4AB1-9553-6B1A2D08DCC6}
+		{318D6EBC-417A-439B-88C3-ED2C3A187D21} = {E29A52D6-EC4D-4C06-9BAB-CDB45042590F}
 	EndGlobalSection
 EndGlobal
