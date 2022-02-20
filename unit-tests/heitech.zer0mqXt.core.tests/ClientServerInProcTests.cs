@@ -4,6 +4,7 @@ using heitech.zer0mqXt.core.infrastructure;
 using heitech.zer0mqXt.core.Main;
 using heitech.zer0mqXt.core.RqRp;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace heitech.zer0mqXt.core.tests
 {
@@ -12,16 +13,17 @@ namespace heitech.zer0mqXt.core.tests
         private IClient _client; // need to create in each test after setting up the responder, else it will crash
         private IResponder _responder;
         private readonly IPatternFactory _patterns;
-
-        public ClientServerInProcTests()
+        private readonly ITestOutputHelper _h;
+        public ClientServerInProcTests(ITestOutputHelper h)
         {
+            _h = h;
             _patterns = Zer0Mq.Go().SilenceLogger().BuildWithInProc($"{Guid.NewGuid()}");
             _responder = _patterns.CreateResponder();
         }
 
         private IClient Client
         {
-            get 
+            get
             {
                 if (_client == null)
                 {
@@ -124,6 +126,65 @@ namespace heitech.zer0mqXt.core.tests
             Assert.False(result.IsSuccess);
         }
 
+        [Theory]
+        [InlineData(0, false)]
+        [InlineData(1, true)]
+        [InlineData(3, true)]
+        public async Task RetryWorksForTheSpecifiedRetryCount(uint retryCount, bool expectedSuccess)
+        {
+            IClient client = null;
+            try
+            {
+
+                // Arrange
+                var socket = Zer0Mq.Go().SetLogger(new LoggerAdapter { H = _h }).SilenceLogger().SetTimeOut(300).SetRetryCount(retryCount).BuildWithInProc($"{Guid.NewGuid()}");
+                using var responder = socket.CreateResponder();
+                var setup = Task.Run(async () =>
+                {
+                    await Task.Delay(150);
+                    responder.Respond<Request, Response>((r) => new Response { ResponseNumber = 2 * r.RequestNumber });
+                });
+                // Act uses retry here
+                var ex = Record.Exception(() => { client = socket.CreateClient(); });
+                // Act
+                // and uses retry also here
+                if (!expectedSuccess)
+                {
+                    Assert.IsType<ZeroMqXtSocketException>(ex);
+                    return;
+                }
+
+                var result = await client?.RequestAsync<Request, Response>(new Request { RequestNumber = 21 });
+                await setup;
+
+                // Assert
+                Assert.Null(ex);
+            }
+            finally
+            {
+                client?.Dispose();
+            }
+        }
+
+        private class LoggerAdapter : ILogger
+        {
+            public ITestOutputHelper H;
+            public void Log(LogMessage message)
+            {
+                H.WriteLine(message.Msg);
+            }
+
+            public void SetLogLevel(int level)
+            {
+                //
+            }
+
+            public void SetSilent()
+            {
+                //
+            }
+        }
+
         // todo interface for try was removed
         // [Fact]
         // public async Task TryRequest_returns_false_and_invokes_the_failure_callback_when_no_server_exists()
@@ -180,7 +241,7 @@ namespace heitech.zer0mqXt.core.tests
         // public async Task Multiple_Threads_Send_To_One_Responder_Works(object configuration)
         // {
         //     // Arrange
-        //     var pattern = Zer0Mq.From((SocketConfiguration)configuration);
+        //     var pattern = Zer0Mq.From((SocketConfiguration)new ConfigurationTestData().GetSocketConfigInProc);
 
         //     using var responder = pattern.CreateResponder();
         //     responder.Respond<Request, Response>(rq => new Response { ResponseNumber = rq.RequestNumber });

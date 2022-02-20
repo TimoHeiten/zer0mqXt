@@ -10,12 +10,14 @@ namespace heitech.zer0mqXt.core.Main
         private bool _isSilent;
         private ILogger _logger;
         private TimeSpan _timeOut;
+        private uint? _retryCount;
         private ISerializerAdapter _serializer;
 
         private Zer0Mq()
         {
-            _timeOut = TimeSpan.FromSeconds(5);
+            _retryCount = 1;
             _logger = new BasicLogger();
+            _timeOut = TimeSpan.FromSeconds(5);
             _serializer = new InternalAdapter();
         }
 
@@ -28,6 +30,18 @@ namespace heitech.zer0mqXt.core.Main
         public IZer0MqBuilder SetLogger(ILogger adapter)
         {
             _logger = adapter;
+            return this;
+        }
+
+        public IZer0MqBuilder SetRetryCount(uint count)
+        {
+            _retryCount = count;
+            return this;
+        }
+
+        public IZer0MqBuilder DisableRetry()
+        {
+            _retryCount = null;
             return this;
         }
 
@@ -47,6 +61,7 @@ namespace heitech.zer0mqXt.core.Main
             configuration.Logger = _logger;
             configuration.Timeout = _timeOut;
             configuration.Serializer = _serializer;
+            configuration.RetryCount = _retryCount;
 
             if (_isSilent)
                 _logger.SetSilent();

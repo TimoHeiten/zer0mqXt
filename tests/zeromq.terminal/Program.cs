@@ -7,8 +7,6 @@ using heitech.zer0mqXt.core.Main;
 using heitech.zer0mqXt.core.RqRp;
 using zeromq.terminal.PubSubTests;
 using zeromq.terminal.RqRepTests;
-// using zeromq.terminal.PubSubTests;
-// using zeromq.terminal.RqRepTests;
 
 namespace zeromq.terminal
 {

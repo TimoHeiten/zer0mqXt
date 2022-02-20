@@ -1,5 +1,4 @@
 using heitech.zer0mqXt.core.infrastructure;
-using heitech.zer0mqXt.core.utils;
 
 namespace heitech.zer0mqXt.core.PubSub
 {
