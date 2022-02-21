@@ -29,7 +29,7 @@ namespace zeromq.endurance
                 await RunNext(loadTests[i], amountOfMessages);
             }
 
-            System.Console.WriteLine("All Tests are done");
+            System.Console.WriteLine("All Tests have finished");
         }
 
 
@@ -58,6 +58,8 @@ namespace zeromq.endurance
                 tester.SimpleMessagesRaw(chunkMessages(16)),
                 tester.SimpleMessagesRaw(chunkMessages(16))
             };
+
+            await Task.WhenAll(tasks);
 
             System.Console.WriteLine($"press button - load test for '{tester.Name}' is done!");
             System.Console.ReadLine();
