@@ -28,6 +28,14 @@ namespace heitech.zer0mqXt.core.Main
             return this;
         }
 
+        public IZer0MqBuilder UseNewtonsoftJson()
+        {
+            var adapter = new InternalAdapter();
+            adapter.SetToNewtonsoft();
+            _serializer = adapter;
+            return this;
+        }
+
         public IZer0MqBuilder SetLogger(ILogger adapter)
         {
             _logger = adapter;
