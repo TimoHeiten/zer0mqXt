@@ -9,9 +9,15 @@ namespace heitech.zer0mqXt.core.infrastructure
     internal abstract class SocketConfiguration : IEquatable<SocketConfiguration>
     {
         ///<summary>
-        /// Uses Newtonsoft by default. But you can also use Utf8Json or supply your own serialization
+        /// Uses System.Text by default. But you can also use Newtonsoft or supply your own serialization adapter
         ///</summary>
-        public ISerializerAdapter Serializer { get; set; }
+        public ISerializerAdapter Serializer
+        {
+            get => _serializer ??= new InternalAdapter();
+            internal set => _serializer = value;
+        }
+        private ISerializerAdapter _serializer;
+
         public bool DeveloperMode { get; internal set; } = false;
         internal abstract string Address(NetMQSocket netMQSocket = null);
         ///<summary>
@@ -19,40 +25,29 @@ namespace heitech.zer0mqXt.core.infrastructure
         ///</summary>
         public ILogger Logger 
         {
-            get
-            {
-                if (_logger == null)
-                    _logger = new BasicLogger();
-
-                return _logger;
-            } 
+            get => _logger ??= new BasicLogger();
             set => _logger = value;
         }
         private ILogger _logger;
-        private protected SocketConfiguration()
-        {
-            _logger = new BasicLogger();
-
-            var adapter = new InternalAdapter();
-            Encoding = adapter.Encoding;
-            Serializer = adapter;
-
-            RetryCount = 1;
-            Timeout = TimeSpan.FromSeconds(5);
-        }
 
         ///<summary>
         /// By default it is UTF8
         ///</summary>
-        public Encoding Encoding { get; set; }
+        public Encoding Encoding => Serializer.Encoding;
 
         ///<summary>
         /// Default Timeout is 5 seconds
         ///</summary>
-        public TimeSpan Timeout { get; set; }
+        public TimeSpan Timeout { get; internal set; }
 
-        public uint? RetryCount { get; set; }
+        public uint? RetryCount { get; internal set; }
         public bool RetryIsActive => RetryCount.HasValue && RetryCount.Value > 0;
+
+        private protected SocketConfiguration()
+        {
+            RetryCount = 1;
+            Timeout = TimeSpan.FromSeconds(5);
+        }
 
         public static SocketConfiguration InprocConfig(string name) => new Inproc(name);
         public static SocketConfiguration TcpConfig(string port) => new Tcp(port);

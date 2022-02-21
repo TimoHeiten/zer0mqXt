@@ -1,9 +1,9 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
-using Xunit;
 using heitech.zer0mqXt.core.Main;
 using heitech.zer0mqXt.core.Transport;
-using System.Threading;
+using Xunit;
 
 namespace heitech.zer0mqXt.core.tests
 {
@@ -11,9 +11,7 @@ namespace heitech.zer0mqXt.core.tests
     {
         private readonly IPatternFactory _patterns;
         public AttributeOrConventionTests()
-        {
-            _patterns = Zer0Mq.Go().SilenceLogger().BuildWithInProc($"{Guid.NewGuid()}");
-        }
+            => _patterns = Zer0Mq.Go().SilenceLogger().BuildWithInProc($"{Guid.NewGuid()}");
 
         [Fact]
         public async Task RqRep_With_MessageId_Works()
@@ -21,7 +19,8 @@ namespace heitech.zer0mqXt.core.tests
             // Arrange
             using var responder = _patterns.CreateResponder();
             var waitHandle = new ManualResetEvent(false);
-            responder.Respond<Request, Response>(x => {
+            responder.Respond<Request, Response>(x =>
+            {
                 waitHandle.Set();
                 return new Response();
             }, onError: null);
@@ -114,26 +113,14 @@ namespace heitech.zer0mqXt.core.tests
         }
 
         [Zer0mqMessage("Request-Id")]
-        private class Request
-        {
-            public int RequestNumber { get; set; }
-        }
+        private class Request { public int RequestNumber { get; set; } }
 
-        private class Response
-        {
-            public string ResponseText { get; set; }
-        }
+        private class Response { public string ResponseText { get; set; } }
 
         [Zer0mqMessage("Request-Id")]
-        private class RequestV2
-        {
-            public int RequestNumber { get; set; }
-        }
+        private class RequestV2 { public int RequestNumber { get; set; } }
 
         [Zer0mqMessage("Request-Id-V3")]
-        private class RequestV3
-        {
-            public int RequestNumber { get; set; }
-        }
+        private class RequestV3 { public int RequestNumber { get; set; } }
     }
 }
