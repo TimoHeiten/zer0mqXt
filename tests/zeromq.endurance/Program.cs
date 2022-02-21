@@ -59,7 +59,7 @@ namespace zeromq.endurance
                 tester.SimpleMessagesRaw(chunkMessages(16))
             };
 
-            await Task.WhenAll(tasks);
+            await Task.WhenAll(tasks2);
 
             System.Console.WriteLine($"press button - load test for '{tester.Name}' is done!");
             System.Console.ReadLine();
