@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using FluentAssertions;
 using heitech.zer0mqXt.core.infrastructure;
 using heitech.zer0mqXt.core.Main;
 using heitech.zer0mqXt.core.RqRp;
@@ -43,8 +44,8 @@ namespace heitech.zer0mqXt.core.tests
             var xtResult = await Client.RequestAsync<Request, Response>(new Request { RequestNumber = 42 });
 
             // Assert
-            Assert.True(xtResult.IsSuccess);
-            Assert.Equal(42, xtResult.GetResult().ResponseNumber);
+            xtResult.IsSuccess.Should().BeTrue();
+            xtResult.GetResult().ResponseNumber.Should().Be(42);
         }
 
         [Fact]
@@ -57,8 +58,8 @@ namespace heitech.zer0mqXt.core.tests
             var xtResult = await Client.RequestAsync<Request, Response>(new Request { RequestNumber = 42 });
 
             // Assert
-            Assert.False(xtResult.IsSuccess);
-            Assert.NotNull(xtResult.Exception);
+            xtResult.IsSuccess.Should().BeFalse();
+            xtResult.Exception.Should().NotBeNull();
         }
 
         [Fact]
@@ -74,7 +75,7 @@ namespace heitech.zer0mqXt.core.tests
             var ex = Record.Exception(() => pattern.CreateClient());
 
             // Assert
-            Assert.IsType<ZeroMqXtSocketException>(ex);
+            ex.Should().BeOfType<ZeroMqXtSocketException>();
         }
 
         [Fact]
@@ -91,7 +92,7 @@ namespace heitech.zer0mqXt.core.tests
             var result = await Client.RequestAsync<Request, Response>(new Request { RequestNumber = 2 });
 
             // Assert
-            Assert.True(result.IsSuccess);
+            result.IsSuccess.Should().BeTrue();
         }
 
         [Fact]
@@ -107,10 +108,10 @@ namespace heitech.zer0mqXt.core.tests
             var result = await Client.RequestAsync<Request, Response>(new Request { RequestNumber = 2 });
 
             // Assert
-            Assert.False(result.IsSuccess);
-            Assert.NotNull(result.Exception);
-            Assert.Contains("ArgumentException", result.Exception.Message);
-            Assert.StartsWith("Server failed with" + Environment.NewLine + "ArgumentException", result.Exception.Message);
+            result.IsSuccess.Should().BeFalse();
+            result.Exception.Should().NotBeNull();
+            result.Exception.Message.Should().Contain("ArgumentException");
+            result.Exception.Message.Should().StartWith($"Server failed with{Environment.NewLine}ArgumentException");
         }
 
         [Fact]
@@ -123,7 +124,7 @@ namespace heitech.zer0mqXt.core.tests
             var result = _responder.Respond<Request, Response>((r) => new Response());
 
             // Assert
-            Assert.False(result.IsSuccess);
+            result.IsSuccess.Should().BeFalse();
         }
 
         [Theory]
@@ -158,7 +159,7 @@ namespace heitech.zer0mqXt.core.tests
                 await setup;
 
                 // Assert
-                Assert.Null(ex);
+                ex.Should().BeNull();
             }
             finally
             {
@@ -235,41 +236,39 @@ namespace heitech.zer0mqXt.core.tests
         //     Assert.Throws<ZeroMqXtSocketException>(a);
         // }
 
-        //! todo blocks forever
-        // [Theory]
-        // [ClassData(typeof(ConfigurationTestData))]
-        // public async Task Multiple_Threads_Send_To_One_Responder_Works(object configuration)
-        // {
-        //     // Arrange
-        //     var pattern = Zer0Mq.From((SocketConfiguration)new ConfigurationTestData().GetSocketConfigInProc);
+        [Fact]
+        public async Task Multiple_Threads_Send_To_One_Responder_Works()
+        {
+            // Arrange
+            var pattern = Zer0Mq.Go().BuildWithInProc($"{Guid.NewGuid()}");
 
-        //     using var responder = pattern.CreateResponder();
-        //     responder.Respond<Request, Response>(rq => new Response { ResponseNumber = rq.RequestNumber });
+            using var responder = pattern.CreateResponder();
+            responder.Respond<Request, Response>(rq => new Response { ResponseNumber = rq.RequestNumber });
 
-        //     using var client = pattern.CreateClient();
+            using var client = pattern.CreateClient();
 
-        //     var input_output_Tuples = new List<(int, int)>();
-        //     var taskList = new List<Task>()
-        //      {
-        //          DoMultipleRequestAsync(client, 1, input_output_Tuples),
-        //          DoMultipleRequestAsync(client, 2, input_output_Tuples),
-        //          DoMultipleRequestAsync(client, 3, input_output_Tuples),
-        //      };
+            var input_output_Tuples = new System.Collections.Generic.List<(int, int)>();
+            var taskList = new System.Collections.Generic.List<Task>()
+             {
+                 DoMultipleRequestAsync(client, 1, input_output_Tuples),
+                 DoMultipleRequestAsync(client, 2, input_output_Tuples),
+                //  DoMultipleRequestAsync(client, 3, input_output_Tuples),
+             };
 
-        //     //   Act
-        //     await Task.WhenAll(taskList);
+            //   Act
+            await Task.WhenAll(taskList);
 
-        //     //   Assert
-        //     foreach (var (_in, _out) in input_output_Tuples)
-        //         Assert.Equal(_in, _out);
-        // }
+            //   Assert
+            foreach (var (_in, _out) in input_output_Tuples)
+                Assert.Equal(_in, _out);
+        }
 
-        // private async Task DoMultipleRequestAsync(IClient sut, int input, List<(int, int)> input_output_Tuples)
-        // {
-        //     var result = await sut.RequestAsync<Request, Response>(new Request { RequestNumber = input });
-        //     Assert.True(result.IsSuccess);
-        //     input_output_Tuples.Add((input, result.GetResult().ResponseNumber));
-        // }
+        private async Task DoMultipleRequestAsync(IClient sut, int input, System.Collections.Generic.List<(int, int)> input_output_Tuples)
+        {
+            var result = await sut.RequestAsync<Request, Response>(new Request { RequestNumber = input });
+            result.IsSuccess.Should().BeTrue();
+            input_output_Tuples.Add((input, result.GetResult().ResponseNumber));
+        }
 
         internal class Request { public int RequestNumber { get; set; } }
         private class Response { public int ResponseNumber { get; set; } }

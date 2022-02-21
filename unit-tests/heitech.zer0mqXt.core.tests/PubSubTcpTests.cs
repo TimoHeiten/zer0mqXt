@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using static heitech.zer0mqXt.core.tests.PubSubInProcTests;
 using System.Threading;
 using heitech.zer0mqXt.core.Main;
+using FluentAssertions;
 
 namespace heitech.zer0mqXt.core.tests
 {
@@ -31,10 +32,10 @@ namespace heitech.zer0mqXt.core.tests
 
             // Assert
             bool wasSignaled = resetEvent.WaitOne(SIG_WAIT);
-            Assert.True(wasSignaled);
-            Assert.NotNull(incoming);
-            Assert.Equal(message.Array, incoming.Array);
-            Assert.Equal(message.ThisIsAPublishedMessageText, incoming.ThisIsAPublishedMessageText);
+            wasSignaled.Should().BeTrue();
+            incoming.Should().NotBeNull();
+            incoming.Array.Should().BeEquivalentTo(message.Array);
+            incoming.ThisIsAPublishedMessageText.Should().Be(message.ThisIsAPublishedMessageText);
         }
     }
 }
