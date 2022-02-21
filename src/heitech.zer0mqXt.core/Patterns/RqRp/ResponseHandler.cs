@@ -18,12 +18,26 @@ namespace heitech.zer0mqXt.core.patterns.RqRp
         private readonly Func<T, TResult> _syncCallback;
         private readonly SocketConfiguration _configuration;
         private readonly Func<T, Task<TResult>> _asyncCallback;
+        private Func<Task<TResult>> onError = () => Task.FromResult(default(TResult));
+
 
         private ResponseHandler(SocketConfiguration configuration, Func<T, TResult> syncCallback = null, Func<T, Task<TResult>> asyncCallback = null)
         {
             _syncCallback = syncCallback;
             _asyncCallback = asyncCallback;
             _configuration = configuration;
+        }
+
+        internal void SetOnError(Func<Task<TResult>> onError)
+        {
+            if (onError != null)
+                this.onError = onError;
+        }
+
+        internal void SetOnError(Func<TResult> onError)
+        {
+            if (onError != null)
+                this.onError = () =>  Task.FromResult(onError());
         }
 
         internal static ResponseHandler<T, TResult> Sync(SocketConfiguration config, Func<T, TResult> syncCallback)
@@ -34,7 +48,10 @@ namespace heitech.zer0mqXt.core.patterns.RqRp
 
         public async Task<TResult> HandleAsync(XtResult<T> incomingRequest)
         {
-            T request = incomingRequest.IsSuccess ? incomingRequest.GetResult() : new T();
+            if (!incomingRequest.IsSuccess)
+                return await onError();
+
+            T request = incomingRequest.GetResult(); 
             if (_asyncCallback is null)
                 return _syncCallback(request);
             else

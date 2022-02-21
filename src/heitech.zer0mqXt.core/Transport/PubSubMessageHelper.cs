@@ -5,6 +5,9 @@ namespace heitech.zer0mqXt.core.transport
 {
     internal static class PubSubMessageHelper
     {
+        ///<summary>
+        /// Find the currently desired Topic for a given publisher based on the registered topic or its typeframe convention
+        ///</summary>
         public static string GetTopicFrame<TMessage>(this SocketConfiguration configuration, string topic)
         {
             return string.IsNullOrWhiteSpace(topic) ? typeof(TMessage).TypeFrameName() : topic;
