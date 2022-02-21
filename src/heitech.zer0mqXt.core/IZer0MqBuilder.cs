@@ -13,6 +13,10 @@ namespace heitech.zer0mqXt.core
     {
         //todo create interface to replace services as soon as an injector is decided
         ///<summary>
+        /// Enable the developer mode to see remote stacktraces / exceptions for debugging purposes.
+        ///</summary>
+        IZer0MqBuilder EnableDeveloperMode();
+        ///<summary>
         /// Set the logger
         ///</summary>
         IZer0MqBuilder SetLogger(ILogger adapter);

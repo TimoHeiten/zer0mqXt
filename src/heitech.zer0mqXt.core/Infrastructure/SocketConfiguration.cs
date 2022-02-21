@@ -12,6 +12,7 @@ namespace heitech.zer0mqXt.core.infrastructure
         /// Uses Newtonsoft by default. But you can also use Utf8Json or supply your own serialization
         ///</summary>
         public ISerializerAdapter Serializer { get; set; }
+        public bool DeveloperMode { get; internal set; } = false;
         internal abstract string Address(NetMQSocket netMQSocket = null);
         ///<summary>
         /// Uses the BasicLogger implementation by default which only Logs to the console

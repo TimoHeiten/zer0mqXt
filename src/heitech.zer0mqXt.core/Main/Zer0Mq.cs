@@ -11,6 +11,7 @@ namespace heitech.zer0mqXt.core.Main
         private ILogger _logger;
         private TimeSpan _timeOut;
         private uint? _retryCount;
+        private bool _developerMode;
         private ISerializerAdapter _serializer;
 
         private Zer0Mq()
@@ -45,6 +46,12 @@ namespace heitech.zer0mqXt.core.Main
             return this;
         }
 
+        public IZer0MqBuilder EnableDeveloperMode()
+        {
+            _developerMode = true;
+            return this;
+        }
+
         ///<summary>
         /// Entry point for building a new ISocket instance with the desired configuration
         ///</summary>
@@ -62,6 +69,7 @@ namespace heitech.zer0mqXt.core.Main
             configuration.Timeout = _timeOut;
             configuration.Serializer = _serializer;
             configuration.RetryCount = _retryCount;
+            configuration.DeveloperMode = _developerMode;
 
             if (_isSilent)
                 _logger.SetSilent();
