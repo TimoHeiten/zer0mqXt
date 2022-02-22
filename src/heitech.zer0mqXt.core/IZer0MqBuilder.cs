@@ -37,6 +37,12 @@ namespace heitech.zer0mqXt.core
         /// Introduce a ISerializeAdapter, maybe from your choosing
         ///</summary>
         IZer0MqBuilder SetSerializer(ISerializerAdapter adapter);
+
+        ///<summary>
+        /// Use the Newtonsoft.JSON library for Message Serialization. Default is the System.Text.JSON Serializer
+        ///</summary>
+        IZer0MqBuilder UseNewtonsoftJson();
+
         ///<summary>
         /// Set the Timeout for Retry of Operations to your choosing
         ///</summary>

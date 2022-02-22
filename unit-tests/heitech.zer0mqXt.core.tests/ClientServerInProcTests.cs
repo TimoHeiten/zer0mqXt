@@ -67,6 +67,7 @@ namespace heitech.zer0mqXt.core.tests
         {
             // Arrange
             var config = (SocketConfiguration)new ConfigurationTestData().GetSocketConfigInProc;
+            config.Logger.SetSilent();
             var pattern = Zer0Mq.From(config);
             config.Timeout = TimeSpan.FromMilliseconds(50);
             // no server this time around
@@ -99,7 +100,7 @@ namespace heitech.zer0mqXt.core.tests
         public async Task Exception_propagation_when_server_response_Throws_to_Requester()
         {
             // Arrange
-            var p2 = Zer0Mq.Go().EnableDeveloperMode().BuildWithInProc($"{Guid.NewGuid()}");
+            var p2 = Zer0Mq.Go().SilenceLogger().EnableDeveloperMode().BuildWithInProc($"{Guid.NewGuid()}");
             using var responder2 = p2.CreateResponder();
             responder2.Respond<Request, Response>(r =>
             {
@@ -140,7 +141,12 @@ namespace heitech.zer0mqXt.core.tests
             try
             {
                 // Arrange
-                var socket = Zer0Mq.Go().SetLogger(new LoggerAdapter { H = _h }).SilenceLogger().SetTimeOut(300).SetRetryCount(retryCount).BuildWithInProc($"{Guid.NewGuid()}");
+                var socket = Zer0Mq.Go().SetLogger(new LoggerAdapter { H = _h })
+                                        .SilenceLogger()
+                                        .SetTimeOut(300)
+                                        .SetRetryCount(retryCount)
+                                        .BuildWithInProc($"{Guid.NewGuid()}");
+
                 using var responder = socket.CreateResponder();
                 var setup = Task.Run(async () =>
                 {
@@ -190,7 +196,7 @@ namespace heitech.zer0mqXt.core.tests
         public async Task RequestAndReply_OnlySendStacktraceInDeveloperMode()
         {
             // Arrange
-            var patternsv2 = Zer0Mq.Go().EnableDeveloperMode().BuildWithInProc($"{Guid.NewGuid()}");
+            var patternsv2 = Zer0Mq.Go().SilenceLogger().EnableDeveloperMode().BuildWithInProc($"{Guid.NewGuid()}");
             using var respond = patternsv2.CreateResponder();
             respond.Respond<Request, Response>(x => throw new InvalidOperationException("Message is propagated"));
             using var client = patternsv2.CreateClient();
@@ -206,19 +212,22 @@ namespace heitech.zer0mqXt.core.tests
         private class LoggerAdapter : ILogger
         {
             public ITestOutputHelper H;
+            private bool isSilent;
             public void Log(LogMessage message)
             {
+                if (isSilent)
+                    return;
                 H.WriteLine(message.Msg);
             }
 
             public void SetLogLevel(int level)
             {
-                //
+                // intentionally left blank
             }
 
             public void SetSilent()
             {
-                //
+                isSilent = true;
             }
         }
 
@@ -272,11 +281,11 @@ namespace heitech.zer0mqXt.core.tests
         //     Assert.Throws<ZeroMqXtSocketException>(a);
         // }
 
-        [Fact]
+        [Fact(Skip = "Same socket is not threadsafe (NetMQSocket itself)")]
         public async Task Multiple_Threads_Send_To_One_Responder_Works()
         {
             // Arrange
-            var pattern = Zer0Mq.Go().BuildWithInProc($"{Guid.NewGuid()}");
+            var pattern = Zer0Mq.Go().SilenceLogger().BuildWithInProc($"{Guid.NewGuid()}");
 
             using var responder = pattern.CreateResponder();
             responder.Respond<Request, Response>(rq => new Response { ResponseNumber = rq.RequestNumber });

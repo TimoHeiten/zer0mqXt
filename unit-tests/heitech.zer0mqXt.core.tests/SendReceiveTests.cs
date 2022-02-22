@@ -1,11 +1,11 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using FluentAssertions;
 using heitech.zer0mqXt.core.infrastructure;
 using heitech.zer0mqXt.core.Main;
 using heitech.zer0mqXt.core.SendReceive;
 using Xunit;
-using FluentAssertions;
 
 namespace heitech.zer0mqXt.core.tests
 {
@@ -16,7 +16,7 @@ namespace heitech.zer0mqXt.core.tests
         // for inproc to work, the BIND socket (Server) needs to be there first.
         // we need to create the sender from the factory only after BIND happened
         // therefore we only create it in the actual test and not the ctor
-        private ISender Sender 
+        private ISender Sender
         {
             get
             {
@@ -27,7 +27,7 @@ namespace heitech.zer0mqXt.core.tests
                 return _sender;
             }
         }
-        
+
         private ISender _sender;
         public SendReceiveTests()
         {
@@ -61,6 +61,7 @@ namespace heitech.zer0mqXt.core.tests
         {
             // Arrange
             var config = (SocketConfiguration)configuration;
+            config.Logger.SetSilent();
             bool isTcp = config.Address().Contains("tcp");
             config.Timeout = TimeSpan.FromMilliseconds(50);
             // no server this time around
@@ -81,6 +82,7 @@ namespace heitech.zer0mqXt.core.tests
         {
             // Arrange
             var config = (SocketConfiguration)configuration;
+            config.Logger.SetSilent();
             config.Timeout = TimeSpan.FromSeconds(1);
             using var rec = new Receiver(config);
             // is a Timeout
@@ -119,7 +121,7 @@ namespace heitech.zer0mqXt.core.tests
         {
             // Arrange
             // Arrange
-            var p2 = Zer0Mq.Go().EnableDeveloperMode().BuildWithInProc($"{Guid.NewGuid()}");
+            var p2 = Zer0Mq.Go().SilenceLogger().EnableDeveloperMode().BuildWithInProc($"{Guid.NewGuid()}");
             using var receiver2 = p2.CreateReceiver();
             receiver2.SetupReceiver<Message>(r =>
             {
@@ -146,8 +148,8 @@ namespace heitech.zer0mqXt.core.tests
             _receiver.SetupReceiver<Message>((r) => { });
             _ = Sender;
             // Act
-            var result = _receiver.SetupReceiver<Message>((r) => {});
-            
+            var result = _receiver.SetupReceiver<Message>((r) => { });
+
             // Assert
             result.IsSuccess.Should().BeFalse();
         }

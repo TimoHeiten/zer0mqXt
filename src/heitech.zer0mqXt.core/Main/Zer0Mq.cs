@@ -13,18 +13,24 @@ namespace heitech.zer0mqXt.core.Main
         private uint? _retryCount;
         private bool _developerMode;
         private ISerializerAdapter _serializer;
+        private bool useNewtonsoft;
 
         private Zer0Mq()
         {
             _retryCount = 1;
             _logger = new BasicLogger();
             _timeOut = TimeSpan.FromSeconds(5);
-            _serializer = new InternalAdapter();
         }
 
         public IZer0MqBuilder SetSerializer(ISerializerAdapter adapter)
         {
             _serializer = adapter;
+            return this;
+        }
+
+        public IZer0MqBuilder UseNewtonsoftJson()
+        {
+            useNewtonsoft = true;
             return this;
         }
 
@@ -67,7 +73,7 @@ namespace heitech.zer0mqXt.core.Main
         {
             configuration.Logger = _logger;
             configuration.Timeout = _timeOut;
-            configuration.Serializer = _serializer;
+            configuration.Serializer = GetSerializerAdapter();
             configuration.RetryCount = _retryCount;
             configuration.DeveloperMode = _developerMode;
 
@@ -75,6 +81,18 @@ namespace heitech.zer0mqXt.core.Main
                 _logger.SetSilent();
 
             return new PatternFactory(configuration);
+        }
+
+        private ISerializerAdapter GetSerializerAdapter()
+        {
+            if (_serializer != null)
+                return _serializer;
+
+            var adapter = new InternalAdapter();
+            if (useNewtonsoft)
+                adapter.SetToNewtonsoft();
+            
+            return adapter;
         }
 
         // for test purposes only
