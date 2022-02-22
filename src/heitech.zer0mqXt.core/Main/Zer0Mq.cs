@@ -97,10 +97,7 @@ namespace heitech.zer0mqXt.core.Main
 
         // for test purposes only
         internal static IPatternFactory From(SocketConfiguration configuration)
-        {
-            var mq = new Zer0Mq();
-            return mq.Build(configuration);
-        }
+            => new PatternFactory(configuration);
 
         public IZer0MqBuilder SilenceLogger()
         {

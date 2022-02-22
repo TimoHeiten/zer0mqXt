@@ -10,10 +10,10 @@ namespace heitech.zer0mqXt.core.SendReceive
     {
         private readonly IResponder _responder;
         private readonly SocketConfiguration _configuration;
-        internal Receiver(SocketConfiguration configuration)
+        internal Receiver(SocketConfiguration configuration, IResponder responder)
         {
+            _responder = responder;
             _configuration = configuration;
-            _responder = RequestReplyFactory.CreateResponder(configuration);
         }
 
         public XtResult SetupReceiver<TMessage>(Action<TMessage> callback, CancellationToken token = default)

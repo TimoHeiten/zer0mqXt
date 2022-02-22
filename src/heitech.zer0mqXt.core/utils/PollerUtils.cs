@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using NetMQ;
 
 namespace heitech.zer0mqXt.core.utils
@@ -10,10 +11,9 @@ namespace heitech.zer0mqXt.core.utils
             anySocket.ReceiveReady -= receiveDelegate;
             if (poller != null && poller.IsRunning)
             {
-                poller.Stop();
-                poller.Remove(anySocket);
-                poller.Dispose();
-                anySocket.Dispose();
+                // needs to be done from the Poller´s thread or else a race condition is encountered.
+                new Task(() => { poller.Remove(anySocket); anySocket.Dispose(); })
+                .Start(poller);
             }
         }
     }

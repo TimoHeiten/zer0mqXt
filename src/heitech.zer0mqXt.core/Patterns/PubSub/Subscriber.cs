@@ -22,8 +22,9 @@ namespace heitech.zer0mqXt.core.PubSub
 
         internal Subscriber(SocketConfiguration configuration)
         {
-            _poller = new();
+            _poller = configuration.SubscriberPollerInstance;
             _socket = new();
+            _socket.Options.ReceiveHighWatermark = 0;
             _configuration = configuration;
         }
 
@@ -82,7 +83,8 @@ namespace heitech.zer0mqXt.core.PubSub
 
                 // add to poller and register handler
                 _poller.Add(_socket);
-                _poller.RunAsync();
+                if (!_poller.IsRunning)
+                    _poller.RunAsync();
             }
             catch (Exception exception)
             {

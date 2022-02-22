@@ -13,6 +13,9 @@
     <_Parameter1>heitech.zer0mqXt.core.tests</_Parameter1>
     </AssemblyAttribute>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+    <_Parameter1>zeromq.endurance</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
     <_Parameter1>zeromq.terminal</_Parameter1>
     </AssemblyAttribute>
   </ItemGroup>

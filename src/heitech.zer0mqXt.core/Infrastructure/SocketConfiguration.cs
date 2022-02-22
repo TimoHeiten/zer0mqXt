@@ -9,6 +9,12 @@ namespace heitech.zer0mqXt.core.infrastructure
     internal abstract class SocketConfiguration : IEquatable<SocketConfiguration>
     {
         ///<summary>
+        /// Only one Poller is allowed for the same configuration (same port and all). So each Thread does only access it with the same Poller.
+        ///</summary>
+        public NetMQPoller SubscriberPollerInstance { get; }
+
+        ///<summary>
+        /// Uses Newtonsoft by default. But you can also use Utf8Json or supply your own serialization
         /// Uses System.Text by default. But you can also use Newtonsoft or supply your own serialization adapter
         ///</summary>
         public ISerializerAdapter Serializer
@@ -46,6 +52,7 @@ namespace heitech.zer0mqXt.core.infrastructure
         private protected SocketConfiguration()
         {
             RetryCount = 1;
+            SubscriberPollerInstance = new();
             Timeout = TimeSpan.FromSeconds(5);
         }
 
