@@ -1,5 +1,4 @@
 using System.Text;
-using heitech.zer0mqXt.core.infrastructure;
 
 namespace heitech.zer0mqXt.core.Adapters
 {
@@ -8,24 +7,19 @@ namespace heitech.zer0mqXt.core.Adapters
     ///</summary>
     internal class InternalAdapter : ISerializerAdapter
     {
+        private Serializer _serializer;
         public Encoding Encoding { get; } = Encoding.UTF8;
-        private readonly Serializer _serializer;
 
         internal InternalAdapter()
-        {
-            _serializer = Serializer.UseNewtonsoft(Encoding);
-        }
+            => _serializer = Serializer.UseSystemText(Encoding);
 
-        public T Deserialize<T>(byte[] payload)
-            where T : class
-        {
-            return _serializer.Deserialize<T>(payload);
-        }
+        public T Deserialize<T>(byte[] payload) where T : class
+            => _serializer.Deserialize<T>(payload);
 
-        public byte[] Serialize<T>(T @object)
-            where T : class
-        {
-            return _serializer.Serialize<T>(@object);
-        }
+        public byte[] Serialize<T>(T @object) where T : class
+            => _serializer.Serialize<T>(@object);
+
+        public void SetToNewtonsoft()
+            => _serializer = Serializer.UseNewtonsoft(Encoding);
     }
 }

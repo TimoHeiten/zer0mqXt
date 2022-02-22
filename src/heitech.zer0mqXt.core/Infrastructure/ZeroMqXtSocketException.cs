@@ -20,5 +20,8 @@ namespace heitech.zer0mqXt.core.infrastructure
         {
             return new ZeroMqXtSocketException($"Frames count was {actualCount} but M U S T be exactly {expectedCount}");
         }
+
+        internal static ZeroMqXtSocketException ResponseFailed<TRep>()
+            => new ZeroMqXtSocketException($"Response of type '[{typeof(TRep)}]' failed");
     }
 }

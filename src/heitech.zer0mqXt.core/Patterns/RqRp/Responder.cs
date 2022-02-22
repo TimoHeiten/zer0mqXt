@@ -27,7 +27,7 @@ namespace heitech.zer0mqXt.core.patterns.RqRp
             _configuration = configuration;
         }
 
-        public XtResult Respond<TRequest, TResponse>(Func<TRequest, TResponse> handler, CancellationToken token = default)
+        public XtResult Respond<TRequest, TResponse>(Func<TRequest, TResponse> handler, Func<TResponse> onError = null, CancellationToken token = default)
             where TRequest : class, new()
             where TResponse : class, new()
         {
@@ -37,13 +37,14 @@ namespace heitech.zer0mqXt.core.patterns.RqRp
                 {
                     var responseHandler = ResponseHandler<TRequest, TResponse>.Sync(_configuration, handler);
                     _isSetup = true;
+                    responseHandler.SetOnError(onError);
                     return SetupResponder<TRequest, TResponse>(responseHandler, token);
                 }
                 else return XtResult.Failed(new ZeroMqXtSocketException("already setup this responder!"), "setup-responder");
             }
         }
 
-        public XtResult RespondAsync<TRequest, TResponse>(Func<TRequest, Task<TResponse>> asyncHandler, CancellationToken token = default)
+        public XtResult RespondAsync<TRequest, TResponse>(Func<TRequest, Task<TResponse>> asyncHandler, Func<Task<TResponse>> onError = null, CancellationToken token = default)
             where TRequest : class, new()
             where TResponse : class, new()
         {
@@ -52,6 +53,7 @@ namespace heitech.zer0mqXt.core.patterns.RqRp
                 if (!_isSetup)
                 {
                     var responseHandler = ResponseHandler<TRequest, TResponse>.ASync(_configuration, asyncHandler);
+                    responseHandler.SetOnError(onError);
                     _isSetup = true;
                     return SetupResponder<TRequest, TResponse>(responseHandler, token);
                 }

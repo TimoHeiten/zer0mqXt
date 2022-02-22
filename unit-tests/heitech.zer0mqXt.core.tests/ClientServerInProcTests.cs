@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using FluentAssertions;
 using heitech.zer0mqXt.core.infrastructure;
 using heitech.zer0mqXt.core.Main;
 using heitech.zer0mqXt.core.RqRp;
@@ -43,8 +44,8 @@ namespace heitech.zer0mqXt.core.tests
             var xtResult = await Client.RequestAsync<Request, Response>(new Request { RequestNumber = 42 });
 
             // Assert
-            Assert.True(xtResult.IsSuccess);
-            Assert.Equal(42, xtResult.GetResult().ResponseNumber);
+            xtResult.IsSuccess.Should().BeTrue();
+            xtResult.GetResult().ResponseNumber.Should().Be(42);
         }
 
         [Fact]
@@ -57,8 +58,8 @@ namespace heitech.zer0mqXt.core.tests
             var xtResult = await Client.RequestAsync<Request, Response>(new Request { RequestNumber = 42 });
 
             // Assert
-            Assert.False(xtResult.IsSuccess);
-            Assert.NotNull(xtResult.Exception);
+            xtResult.IsSuccess.Should().BeFalse();
+            xtResult.Exception.Should().NotBeNull();
         }
 
         [Fact]
@@ -66,6 +67,7 @@ namespace heitech.zer0mqXt.core.tests
         {
             // Arrange
             var config = (SocketConfiguration)new ConfigurationTestData().GetSocketConfigInProc;
+            config.Logger.SetSilent();
             var pattern = Zer0Mq.From(config);
             config.Timeout = TimeSpan.FromMilliseconds(50);
             // no server this time around
@@ -74,7 +76,7 @@ namespace heitech.zer0mqXt.core.tests
             var ex = Record.Exception(() => pattern.CreateClient());
 
             // Assert
-            Assert.IsType<ZeroMqXtSocketException>(ex);
+            ex.Should().BeOfType<ZeroMqXtSocketException>();
         }
 
         [Fact]
@@ -91,26 +93,29 @@ namespace heitech.zer0mqXt.core.tests
             var result = await Client.RequestAsync<Request, Response>(new Request { RequestNumber = 2 });
 
             // Assert
-            Assert.True(result.IsSuccess);
+            result.IsSuccess.Should().BeTrue();
         }
 
         [Fact]
         public async Task Exception_propagation_when_server_response_Throws_to_Requester()
         {
-            _responder.Respond<Request, Response>(r =>
+            // Arrange
+            var p2 = Zer0Mq.Go().SilenceLogger().EnableDeveloperMode().BuildWithInProc($"{Guid.NewGuid()}");
+            using var responder2 = p2.CreateResponder();
+            responder2.Respond<Request, Response>(r =>
             {
                 throw new ArgumentException("this is a unit test proving the exception propagation works");
             });
-            _client = _patterns.CreateClient();
+            using var client2 = p2.CreateClient();
 
             // Act
-            var result = await Client.RequestAsync<Request, Response>(new Request { RequestNumber = 2 });
+            var result = await client2.RequestAsync<Request, Response>(new Request { RequestNumber = 2 });
 
             // Assert
-            Assert.False(result.IsSuccess);
-            Assert.NotNull(result.Exception);
-            Assert.Contains("ArgumentException", result.Exception.Message);
-            Assert.StartsWith("Server failed with" + Environment.NewLine + "ArgumentException", result.Exception.Message);
+            result.IsSuccess.Should().BeFalse();
+            result.Exception.Should().NotBeNull();
+            result.Exception.Message.Should().Contain("ArgumentException");
+            result.Exception.Message.Should().StartWith($"Server failed with{Environment.NewLine}ArgumentException");
         }
 
         [Fact]
@@ -123,7 +128,7 @@ namespace heitech.zer0mqXt.core.tests
             var result = _responder.Respond<Request, Response>((r) => new Response());
 
             // Assert
-            Assert.False(result.IsSuccess);
+            result.IsSuccess.Should().BeFalse();
         }
 
         [Theory]
@@ -135,9 +140,13 @@ namespace heitech.zer0mqXt.core.tests
             IClient client = null;
             try
             {
-
                 // Arrange
-                var socket = Zer0Mq.Go().SetLogger(new LoggerAdapter { H = _h }).SilenceLogger().SetTimeOut(300).SetRetryCount(retryCount).BuildWithInProc($"{Guid.NewGuid()}");
+                var socket = Zer0Mq.Go().SetLogger(new LoggerAdapter { H = _h })
+                                        .SilenceLogger()
+                                        .SetTimeOut(300)
+                                        .SetRetryCount(retryCount)
+                                        .BuildWithInProc($"{Guid.NewGuid()}");
+
                 using var responder = socket.CreateResponder();
                 var setup = Task.Run(async () =>
                 {
@@ -158,7 +167,7 @@ namespace heitech.zer0mqXt.core.tests
                 await setup;
 
                 // Assert
-                Assert.Null(ex);
+                ex.Should().BeNull();
             }
             finally
             {
@@ -166,22 +175,59 @@ namespace heitech.zer0mqXt.core.tests
             }
         }
 
+        [Fact]
+        public async Task Request_ReplyError_Does_Not_Propagate_remote_Stacktrace()
+        {
+            // Arrange
+            _responder.Respond<Request, Response>(x => throw new InvalidOperationException("Message is propagated"));
+            _client = _patterns.CreateClient();
+
+            // Act
+            var result = await _client.RequestAsync<Request, Response>(new Request());
+
+            // Assert
+            Assert.False(result.IsSuccess);
+            Assert.DoesNotContain("propagated", result.Exception.Message);
+            var ex = ZeroMqXtSocketException.ResponseFailed<Response>();
+            Assert.Equal(ex.Message, result.Exception.Message);
+        }
+
+        [Fact]
+        public async Task RequestAndReply_OnlySendStacktraceInDeveloperMode()
+        {
+            // Arrange
+            var patternsv2 = Zer0Mq.Go().SilenceLogger().EnableDeveloperMode().BuildWithInProc($"{Guid.NewGuid()}");
+            using var respond = patternsv2.CreateResponder();
+            respond.Respond<Request, Response>(x => throw new InvalidOperationException("Message is propagated"));
+            using var client = patternsv2.CreateClient();
+
+            // Act
+            var result = await client.RequestAsync<Request, Response>(new Request());
+
+            // Assert
+            Assert.False(result.IsSuccess);
+            Assert.Contains("propagated", result.Exception.Message);
+        }
+
         private class LoggerAdapter : ILogger
         {
             public ITestOutputHelper H;
+            private bool isSilent;
             public void Log(LogMessage message)
             {
+                if (isSilent)
+                    return;
                 H.WriteLine(message.Msg);
             }
 
             public void SetLogLevel(int level)
             {
-                //
+                // intentionally left blank
             }
 
             public void SetSilent()
             {
-                //
+                isSilent = true;
             }
         }
 
@@ -235,43 +281,41 @@ namespace heitech.zer0mqXt.core.tests
         //     Assert.Throws<ZeroMqXtSocketException>(a);
         // }
 
-        //! todo blocks forever
-        // [Theory]
-        // [ClassData(typeof(ConfigurationTestData))]
-        // public async Task Multiple_Threads_Send_To_One_Responder_Works(object configuration)
-        // {
-        //     // Arrange
-        //     var pattern = Zer0Mq.From((SocketConfiguration)new ConfigurationTestData().GetSocketConfigInProc);
+        [Fact(Skip = "Same socket is not threadsafe (NetMQSocket itself)")]
+        public async Task Multiple_Threads_Send_To_One_Responder_Works()
+        {
+            // Arrange
+            var pattern = Zer0Mq.Go().SilenceLogger().BuildWithInProc($"{Guid.NewGuid()}");
 
-        //     using var responder = pattern.CreateResponder();
-        //     responder.Respond<Request, Response>(rq => new Response { ResponseNumber = rq.RequestNumber });
+            using var responder = pattern.CreateResponder();
+            responder.Respond<Request, Response>(rq => new Response { ResponseNumber = rq.RequestNumber });
 
-        //     using var client = pattern.CreateClient();
+            using var client = pattern.CreateClient();
 
-        //     var input_output_Tuples = new List<(int, int)>();
-        //     var taskList = new List<Task>()
-        //      {
-        //          DoMultipleRequestAsync(client, 1, input_output_Tuples),
-        //          DoMultipleRequestAsync(client, 2, input_output_Tuples),
-        //          DoMultipleRequestAsync(client, 3, input_output_Tuples),
-        //      };
+            var input_output_Tuples = new System.Collections.Generic.List<(int, int)>();
+            var taskList = new System.Collections.Generic.List<Task>()
+             {
+                 DoMultipleRequestAsync(client, 1, input_output_Tuples),
+                 DoMultipleRequestAsync(client, 2, input_output_Tuples),
+                //  DoMultipleRequestAsync(client, 3, input_output_Tuples),
+             };
 
-        //     //   Act
-        //     await Task.WhenAll(taskList);
+            //   Act
+            await Task.WhenAll(taskList);
 
-        //     //   Assert
-        //     foreach (var (_in, _out) in input_output_Tuples)
-        //         Assert.Equal(_in, _out);
-        // }
+            //   Assert
+            foreach (var (_in, _out) in input_output_Tuples)
+                Assert.Equal(_in, _out);
+        }
 
-        // private async Task DoMultipleRequestAsync(IClient sut, int input, List<(int, int)> input_output_Tuples)
-        // {
-        //     var result = await sut.RequestAsync<Request, Response>(new Request { RequestNumber = input });
-        //     Assert.True(result.IsSuccess);
-        //     input_output_Tuples.Add((input, result.GetResult().ResponseNumber));
-        // }
+        private async Task DoMultipleRequestAsync(IClient sut, int input, System.Collections.Generic.List<(int, int)> input_output_Tuples)
+        {
+            var result = await sut.RequestAsync<Request, Response>(new Request { RequestNumber = input });
+            result.IsSuccess.Should().BeTrue();
+            input_output_Tuples.Add((input, result.GetResult().ResponseNumber));
+        }
 
-        private class Request { public int RequestNumber { get; set; } }
+        internal class Request { public int RequestNumber { get; set; } }
         private class Response { public int ResponseNumber { get; set; } }
 
 

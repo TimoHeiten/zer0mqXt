@@ -1,11 +1,10 @@
 using System;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using FluentAssertions;
 using heitech.zer0mqXt.core.infrastructure;
 using heitech.zer0mqXt.core.Main;
 using heitech.zer0mqXt.core.patterns.RqRp;
-using heitech.zer0mqXt.core.RqRp;
 using heitech.zer0mqXt.core.SendReceive;
 using Xunit;
 
@@ -18,7 +17,7 @@ namespace heitech.zer0mqXt.core.tests
         // for inproc to work, the BIND socket (Server) needs to be there first.
         // we need to create the sender from the factory only after BIND happened
         // therefore we only create it in the actual test and not the ctor
-        private ISender Sender 
+        private ISender Sender
         {
             get
             {
@@ -29,7 +28,7 @@ namespace heitech.zer0mqXt.core.tests
                 return _sender;
             }
         }
-        
+
         private ISender _sender;
         public SendReceiveTests()
         {
@@ -54,7 +53,7 @@ namespace heitech.zer0mqXt.core.tests
             await Sender.SendAsync(new Message { Number = 42 });
 
             // Assert
-            Assert.Equal(42, result);
+            result.Should().Be(42);
         }
 
         [Theory]
@@ -63,6 +62,7 @@ namespace heitech.zer0mqXt.core.tests
         {
             // Arrange
             var config = (SocketConfiguration)configuration;
+            config.Logger.SetSilent();
             bool isTcp = config.Address().Contains("tcp");
             config.Timeout = TimeSpan.FromMilliseconds(50);
             // no server this time around
@@ -72,9 +72,9 @@ namespace heitech.zer0mqXt.core.tests
 
             // Assert
             if (isTcp)
-                Assert.Null(ex);
+                ex.Should().BeNull();
             else
-                Assert.IsType<ZeroMqXtSocketException>(ex);
+                ex.Should().BeOfType<ZeroMqXtSocketException>();
         }
 
         [Theory]
@@ -83,6 +83,7 @@ namespace heitech.zer0mqXt.core.tests
         {
             // Arrange
             var config = (SocketConfiguration)configuration;
+            config.Logger.SetSilent();
             config.Timeout = TimeSpan.FromSeconds(1);
             using var rec = new Receiver(config, new Responder(config));
             // is a Timeout
@@ -93,7 +94,7 @@ namespace heitech.zer0mqXt.core.tests
             var xtResult = await sender.SendAsync(new Message());
 
             // Assert
-            Assert.False(xtResult.IsSuccess);
+            xtResult.IsSuccess.Should().BeFalse();
         }
 
 
@@ -112,27 +113,33 @@ namespace heitech.zer0mqXt.core.tests
             var xtResult = await Sender.SendAsync(new Message { Number = 2 });
 
             // Assert
-            Assert.True(xtResult.IsSuccess);
-            Assert.Equal(2, result);
+            xtResult.IsSuccess.Should().BeTrue();
+            result.Should().Be(2);
         }
 
         [Fact]
         public async Task Exception_propagation_when_server_response_Throws_to_Requester()
         {
             // Arrange
-            _receiver.SetupReceiver<Message>(r =>
+            // Arrange
+            var p2 = Zer0Mq.Go().SilenceLogger().EnableDeveloperMode().BuildWithInProc($"{Guid.NewGuid()}");
+            using var receiver2 = p2.CreateReceiver();
+            receiver2.SetupReceiver<Message>(r =>
             {
                 throw new ArgumentException("this is a unit test proving the exception propagation works");
             });
+            using var sender2 = p2.CreateSender();
 
             // Act
-            var result = await Sender.SendAsync<Message>(new Message());
+            var result = await sender2.SendAsync<Message>(new Message());
 
             // Assert
-            Assert.False(result.IsSuccess);
-            Assert.NotNull(result.Exception);
-            Assert.Contains("ArgumentException", result.Exception.Message);
-            Assert.StartsWith("Server failed with" + Environment.NewLine + "ArgumentException", result.Exception.Message);
+            result.IsSuccess.Should().BeFalse();
+            result.Exception.Should().NotBeNull();
+            result.Exception.Message.Should().Contain("ArgumentException");
+            result.Exception.Message.Should().StartWith(
+                "Server failed with" + Environment.NewLine + "ArgumentException", result.Exception.Message
+            );
         }
 
         [Fact]
@@ -142,10 +149,10 @@ namespace heitech.zer0mqXt.core.tests
             _receiver.SetupReceiver<Message>((r) => { });
             _ = Sender;
             // Act
-            var result = _receiver.SetupReceiver<Message>((r) => {});
-            
+            var result = _receiver.SetupReceiver<Message>((r) => { });
+
             // Assert
-            Assert.False(result.IsSuccess);
+            result.IsSuccess.Should().BeFalse();
         }
 
         private class Message { public int Number { get; set; } = 12; }

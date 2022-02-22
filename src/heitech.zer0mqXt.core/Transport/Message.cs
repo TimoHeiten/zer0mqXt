@@ -1,6 +1,9 @@
 using System;
+using System.Linq;
+using System.Reflection;
 using heitech.zer0mqXt.core.Adapters;
 using heitech.zer0mqXt.core.infrastructure;
+using heitech.zer0mqXt.core.Transport;
 using NetMQ;
 
 namespace heitech.zer0mqXt.core.transport
@@ -73,10 +76,15 @@ namespace heitech.zer0mqXt.core.transport
             bool isSuccess = Convert.ToBoolean(configuration.Serializer.Deserialize<string>(successFrame));
             if (!isSuccess)
             {
-                var exceptnText = configuration.Serializer.Deserialize<string>(payloadFrame);
-                var excption = new ZeroMqXtSocketException("Server failed with" + exceptnText);
-                configuration.Logger.Log(new DebugLogMsg(excption.Message));
-                return XtResult<TMessage>.Failed(excption, operation);
+                Exception ex =  ZeroMqXtSocketException.ResponseFailed<TMessage>();
+                if (configuration.DeveloperMode)
+                {
+                    var exceptionText = configuration.Serializer.Deserialize<string>(payloadFrame);
+                    ex = new ZeroMqXtSocketException("Server failed with" + exceptionText);
+                }
+
+                configuration.Logger.Log(new ErrorLogMsg(ex.Message));
+                return XtResult<TMessage>.Failed(ex, operation);
             }
             #endregion
 
@@ -96,6 +104,18 @@ namespace heitech.zer0mqXt.core.transport
             }
         }
 
-        public static string TypeFrameName(this Type type) => type.FullName;
+        ///<summary>
+        /// Get the TypeFrame by Convention (Type-Name) or by declarative MessageAttribute
+        ///</summary>
+        public static string TypeFrameName(this Type type) 
+        {
+            // todo optimize with static cache or others?
+            var attribute = type.GetCustomAttributes()
+                                .SingleOrDefault(x => x.GetType() == typeof(Zer0mqMessageAttribute));
+            
+            return attribute is not null && attribute is Zer0mqMessageAttribute zer0
+                   ? zer0.MessageId
+                   : type.Name; 
+        } 
     }
 }

@@ -13,6 +13,10 @@ namespace heitech.zer0mqXt.core
     {
         //todo create interface to replace services as soon as an injector is decided
         ///<summary>
+        /// Enable the developer mode to see remote stacktraces / exceptions for debugging purposes.
+        ///</summary>
+        IZer0MqBuilder EnableDeveloperMode();
+        ///<summary>
         /// Set the logger
         ///</summary>
         IZer0MqBuilder SetLogger(ILogger adapter);
@@ -33,6 +37,12 @@ namespace heitech.zer0mqXt.core
         /// Introduce a ISerializeAdapter, maybe from your choosing
         ///</summary>
         IZer0MqBuilder SetSerializer(ISerializerAdapter adapter);
+
+        ///<summary>
+        /// Use the Newtonsoft.JSON library for Message Serialization. Default is the System.Text.JSON Serializer
+        ///</summary>
+        IZer0MqBuilder UseNewtonsoftJson();
+
         ///<summary>
         /// Set the Timeout for Retry of Operations to your choosing
         ///</summary>
