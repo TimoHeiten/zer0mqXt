@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using FluentAssertions;
 using heitech.zer0mqXt.core.Main;
 using heitech.zer0mqXt.core.Transport;
 using Xunit;
@@ -31,8 +32,8 @@ namespace heitech.zer0mqXt.core.tests
 
             // Assert
             bool wasSignaled = waitHandle.WaitOne(1000);
-            Assert.True(wasSignaled);
-            Assert.True(result.IsSuccess);
+            wasSignaled.Should().BeTrue();
+            result.IsSuccess.Should().BeTrue();
         }
 
         [Fact]
@@ -51,8 +52,8 @@ namespace heitech.zer0mqXt.core.tests
 
             // Assert
             bool wasSignaled = waitHandle.WaitOne(1000);
-            Assert.True(wasSignaled);
-            Assert.False(result.IsSuccess);
+            wasSignaled.Should().BeTrue();
+            result.IsSuccess.Should().BeFalse();
         }
 
         [Fact]
@@ -71,9 +72,9 @@ namespace heitech.zer0mqXt.core.tests
 
             // Assert
             bool wasSignaled = waitHandle.WaitOne(1000);
-            Assert.True(wasSignaled);
-            Assert.True(calledOnError);
-            Assert.False(result.IsSuccess);
+            wasSignaled.Should().BeTrue();
+            calledOnError.Should().BeTrue();
+            result.IsSuccess.Should().BeFalse();
         }
 
         [Fact]
@@ -90,8 +91,8 @@ namespace heitech.zer0mqXt.core.tests
 
             // Assert
             bool wasSignaled = waitHandle.WaitOne(1000);
-            Assert.True(result.IsSuccess);
-            Assert.True(wasSignaled);
+            result.IsSuccess.Should().BeTrue();
+            wasSignaled.Should().BeTrue();
         }
 
         [Fact]
@@ -108,8 +109,8 @@ namespace heitech.zer0mqXt.core.tests
 
             // Assert
             bool wasSignaled = waitHandle.WaitOne(1000);
-            Assert.True(result.IsSuccess);
-            Assert.True(wasSignaled);
+            result.IsSuccess.Should().BeTrue();
+            wasSignaled.Should().BeTrue();
         }
 
         [Zer0mqMessage("Request-Id")]

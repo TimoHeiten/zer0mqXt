@@ -42,7 +42,7 @@ namespace heitech.zer0mqXt.core.tests
                     waitHandle.Set();
                 }, onError: null, topic: null, CancellationToken.None
             );
-            Assert.True(xtResult.IsSuccess);
+            xtResult.IsSuccess.Should().BeTrue();
 
             // Act
             await _publisher.SendAsync<Message>(message);
@@ -90,7 +90,7 @@ namespace heitech.zer0mqXt.core.tests
 
         //     // Assert
         //     bool wassignaled = waitHandle.WaitOne(1500);
-        //     Assert.Equal(wasCaptured, wassignaled);
+        //     wassignaled.Should().Be(wasCaptured);
         // }
 
         [Fact]
@@ -140,7 +140,7 @@ namespace heitech.zer0mqXt.core.tests
             Action a = () => _subscriber.RegisterSubscriber<Message>(callback: m => { incoming = m; waitHandle1.Set(); });
             // sanityCheck
             var ex = Record.Exception(a);
-            Assert.Null(ex);
+            ex.Should().BeNull();
             Action a2 = () => sndSub.RegisterSubscriber<OtherMessage>(callback: m => { otherIncoming = m; waitHandle2.Set(); });
             // sanityCheck
             var ex2 = Record.Exception(a2);
