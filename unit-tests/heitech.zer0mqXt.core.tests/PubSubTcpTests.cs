@@ -24,7 +24,7 @@ namespace heitech.zer0mqXt.core.tests
             using var subscriber = pattern.CreateSubscriber();
             var xt = subscriber.RegisterSubscriber<Message>(callback: m => { incoming = m; resetEvent.Set(); });
             // sanityCheck
-            Assert.True(xt.IsSuccess);
+            xt.IsSuccess.Should().BeTrue();
             await Task.Delay(250); // wait for the subscriber to be setup
 
             // Act

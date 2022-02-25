@@ -159,7 +159,7 @@ namespace heitech.zer0mqXt.core.tests
                 // and uses retry also here
                 if (!expectedSuccess)
                 {
-                    Assert.IsType<ZeroMqXtSocketException>(ex);
+                    ex.Should().BeOfType<ZeroMqXtSocketException>();
                     return;
                 }
 
@@ -186,10 +186,10 @@ namespace heitech.zer0mqXt.core.tests
             var result = await _client.RequestAsync<Request, Response>(new Request());
 
             // Assert
-            Assert.False(result.IsSuccess);
-            Assert.DoesNotContain("propagated", result.Exception.Message);
+            result.IsSuccess.Should().BeFalse();
+            result.Exception.Message.Should().NotContain("propagated");
             var ex = ZeroMqXtSocketException.ResponseFailed<Response>();
-            Assert.Equal(ex.Message, result.Exception.Message);
+            result.Exception.Message.Should().Be(ex.Message);
         }
 
         [Fact]
@@ -205,8 +205,8 @@ namespace heitech.zer0mqXt.core.tests
             var result = await client.RequestAsync<Request, Response>(new Request());
 
             // Assert
-            Assert.False(result.IsSuccess);
-            Assert.Contains("propagated", result.Exception.Message);
+            result.IsSuccess.Should().BeFalse();
+            result.Exception.Message.Should().Contain("propagated");
         }
 
         private class LoggerAdapter : ILogger
@@ -247,9 +247,9 @@ namespace heitech.zer0mqXt.core.tests
         //     );
 
         //     // Assert
-        //     Assert.False(successCalled);
-        //     Assert.True(failureCalled);
-        //     Assert.False(result);
+        //     successCalled.Should().BeFalse();
+        //     failureCalled.Should().BeTrue();
+        //     result.Should().BeFalse();
         // }
 
         // [Fact]
@@ -264,7 +264,7 @@ namespace heitech.zer0mqXt.core.tests
         //     bool success = anotherSocket.TryRespond<Request, Response>((r) => new Response());
 
         //     // Assert
-        //     Assert.False(success);
+        //     success.Should().BeFalse();
         // }
 
         // [Fact]
@@ -278,7 +278,7 @@ namespace heitech.zer0mqXt.core.tests
         //     Action a = () => socket.TryRespond<Request, Response>((r) => new Response());
 
         //     // Assert
-        //     Assert.Throws<ZeroMqXtSocketException>(a);
+        //     a.Should().ThrowExactly<ZeroMqXtSocketException>();
         // }
 
         [Fact(Skip = "Same socket is not threadsafe (NetMQSocket itself)")]
@@ -305,7 +305,7 @@ namespace heitech.zer0mqXt.core.tests
 
             //   Assert
             foreach (var (_in, _out) in input_output_Tuples)
-                Assert.Equal(_in, _out);
+                _out.Should().Be(_in);
         }
 
         private async Task DoMultipleRequestAsync(IClient sut, int input, System.Collections.Generic.List<(int, int)> input_output_Tuples)
