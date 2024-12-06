@@ -16,14 +16,14 @@ namespace heitech.zer0mqXt.core.patterns.RqRp
         private readonly SocketConfiguration _configuration;
         private EventHandler<NetMQSocketEventArgs> _receiveHandler;
         private bool _isSetup = false;
-        private object _concurrencyToken = new();
+        private object _concurrencyToken = new object();
         private bool disposedValue;
 
         internal Responder(SocketConfiguration configuration)
         {
             // hepls with the correctnes and thread safety 
-            _poller = new();
-            _responder = new();
+            _poller = new NetMQPoller();
+            _responder = new ResponseSocket();
             _configuration = configuration;
         }
 

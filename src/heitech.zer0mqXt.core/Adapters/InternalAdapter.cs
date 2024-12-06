@@ -11,7 +11,7 @@ namespace heitech.zer0mqXt.core.Adapters
         public Encoding Encoding { get; } = Encoding.UTF8;
 
         internal InternalAdapter()
-            => _serializer = Serializer.UseSystemText(Encoding);
+            => _serializer = Serializer.UseNewtonsoft(Encoding);
 
         public T Deserialize<T>(byte[] payload) where T : class
             => _serializer.Deserialize<T>(payload);

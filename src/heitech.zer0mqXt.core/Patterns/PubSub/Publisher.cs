@@ -11,7 +11,7 @@ namespace heitech.zer0mqXt.core.PubSub
     {
         private bool disposedValue;
         private PublisherSocket _publisherSocket;
-        private readonly object _concurrencyToken = new();
+        private readonly object _concurrencyToken = new object();
         private readonly SocketConfiguration _configuration;
 
         private Publisher(SocketConfiguration configuration, PublisherSocket socket)

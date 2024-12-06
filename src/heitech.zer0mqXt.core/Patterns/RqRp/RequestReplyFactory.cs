@@ -6,7 +6,7 @@ namespace heitech.zer0mqXt.core.RqRp
 {
     internal static class RequestReplyFactory
     {
-        private static object _concurrencyToken = new();
+        private static object _concurrencyToken = new object();
         public static IClient CreateClient(SocketConfiguration configuration)
         {
             var retry = new Retry(configuration);
