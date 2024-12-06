@@ -52,7 +52,7 @@ namespace heitech.zer0mqXt.core.infrastructure
         private protected SocketConfiguration()
         {
             RetryCount = 1;
-            SubscriberPollerInstance = new();
+            SubscriberPollerInstance = new NetMQPoller();
             Timeout = TimeSpan.FromSeconds(5);
         }
 

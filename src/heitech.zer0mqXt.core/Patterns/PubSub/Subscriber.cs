@@ -18,12 +18,12 @@ namespace heitech.zer0mqXt.core.PubSub
         private EventHandler<NetMQSocketEventArgs> _receiveHandler;
         private bool disposedValue;
         private bool _isSetup = false;
-        private object _concurrencyToken = new();
+        private object _concurrencyToken = new object();
 
         internal Subscriber(SocketConfiguration configuration)
         {
             _poller = configuration.SubscriberPollerInstance;
-            _socket = new();
+            _socket = new SubscriberSocket();
             _socket.Options.ReceiveHighWatermark = 0;
             _configuration = configuration;
         }

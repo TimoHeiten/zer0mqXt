@@ -11,25 +11,25 @@ namespace heitech.zer0mqXt.core.transport
     internal abstract class Message<TMessage>
         where TMessage : class
     {
-        protected ISerializerAdapter _serializer;
-        protected SocketConfiguration _configuration;
-        protected byte[] TypeFrame => _serializer.Serialize(typeof(TMessage).TypeFrameName());
+        protected readonly ISerializerAdapter Serializer;
+        protected SocketConfiguration Configuration;
+        protected byte[] TypeFrame => Serializer.Serialize(typeof(TMessage).TypeFrameName());
         protected byte[] Payload { get; private set; }
         public TMessage Content { get; private set; }
 
         private protected Message(SocketConfiguration configuration, TMessage message)
         {
             Content = message;
-            _configuration = configuration;
-            _serializer = configuration.Serializer;
-            Payload = _serializer.Serialize<TMessage>(Content);
+            Configuration = configuration;
+            Serializer = configuration.Serializer;
+            Payload = Serializer.Serialize<TMessage>(Content);
         }
 
         private protected Message(SocketConfiguration configuration, string errorMsg)
         {
-            _configuration = configuration;
-            _serializer = configuration.Serializer;
-            Payload = _serializer.Serialize<string>(errorMsg);
+            Configuration = configuration;
+            Serializer = configuration.Serializer;
+            Payload = Serializer.Serialize(errorMsg);
         }
 
         protected internal abstract NetMQMessage ToNetMqMessage();
@@ -113,7 +113,7 @@ namespace heitech.zer0mqXt.core.transport
             var attribute = type.GetCustomAttributes()
                                 .SingleOrDefault(x => x.GetType() == typeof(Zer0mqMessageAttribute));
             
-            return attribute is not null && attribute is Zer0mqMessageAttribute zer0
+            return attribute != null && attribute is Zer0mqMessageAttribute zer0
                    ? zer0.MessageId
                    : type.Name; 
         } 

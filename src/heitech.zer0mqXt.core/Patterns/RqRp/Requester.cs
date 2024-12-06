@@ -22,7 +22,7 @@ namespace heitech.zer0mqXt.core.patterns.RqRp
         }
 
         private const string operation = "request";
-        private object _concurrencyToken = new();
+        private object _concurrencyToken = new object();
         internal static XtResult<IClient> TryInitialize(SocketConfiguration configuration)
         {
             try

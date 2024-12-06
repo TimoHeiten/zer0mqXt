@@ -1,5 +1,4 @@
 using System.Text;
-using System.Text.Json;
 using Newtonsoft.Json;
 
 namespace heitech.zer0mqXt.core
@@ -12,9 +11,6 @@ namespace heitech.zer0mqXt.core
         public static Serializer UseNewtonsoft(Encoding encoding)
             => new NewtonJson(encoding);
 
-        public static Serializer UseSystemText(Encoding encoding)
-            => new SystemTextJson(encoding);
-
         public static Serializer UseUtf8Json(Encoding encoding)
             => new Utf8JsonSerializer(encoding);
 
@@ -22,25 +18,6 @@ namespace heitech.zer0mqXt.core
         public abstract T Deserialize<T>(byte[] bytes)
             where T : class;
 
-
-        private sealed class SystemTextJson : Serializer
-        {
-             public SystemTextJson(Encoding encoding) 
-                : base(encoding)
-            { }
-
-            public override T Deserialize<T>(byte[] bytes)
-            {
-                string json = Encoding.GetString(bytes);
-                return System.Text.Json.JsonSerializer.Deserialize<T>(json);
-            }
-
-            public override byte[] Serialize<T>(T value)
-            {
-                string serialized = System.Text.Json.JsonSerializer.Serialize(value);
-                return Encoding.GetBytes(serialized);
-            }
-        }
 
         private sealed class NewtonJson : Serializer
         {
@@ -51,7 +28,6 @@ namespace heitech.zer0mqXt.core
             public override T Deserialize<T>(byte[] bytes)
             {
                 string json = Encoding.GetString(bytes);
-
                 return JsonConvert.DeserializeObject<T>(json);
             }
 

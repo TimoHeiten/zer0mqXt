@@ -17,9 +17,9 @@ namespace heitech.zer0mqXt.core.PubSub
             => _configuration = configuration;
 
         internal static MessageHandler<TMessage> Sync(SocketConfiguration configuration, Action<TMessage> callback)
-            => new(configuration) { _syncCallback = callback };
+            => new MessageHandler<TMessage>(configuration) { _syncCallback = callback };
         internal static MessageHandler<TMessage> ASync(SocketConfiguration configuration, Func<TMessage, Task> callback)
-            => new(configuration) { _asyncCallback = callback };
+            => new MessageHandler<TMessage>(configuration) { _asyncCallback = callback };
 
         public async Task HandleWithAppropriateCallbackAsync(XtResult<TMessage> message, Func<Task> onError)
         {
